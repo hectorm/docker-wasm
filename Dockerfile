@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS emscripten
+FROM docker.io/ubuntu:18.04 AS emscripten
 
 # Install system packages
 RUN export DEBIAN_FRONTEND=noninteractive \
