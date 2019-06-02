@@ -25,7 +25,7 @@ RUN groupadd \
 RUN useradd \
 		--uid "${EMSCRIPTEN_USER_UID}" \
 		--gid "${EMSCRIPTEN_USER_GID}" \
-		--shell="$(which bash)" \
+		--shell="$(command -v bash)" \
 		--home-dir /home/emscripten/ \
 		--create-home \
 		emscripten
