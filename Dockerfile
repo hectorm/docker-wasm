@@ -18,6 +18,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		pkgconf \
 		python \
 		python-pip \
+		python3 \
+		python3-pip \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Create emscripten user and group
