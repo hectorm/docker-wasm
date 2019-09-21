@@ -146,13 +146,14 @@ RUN command -V yarn && yarn --version
 RUN embuilder.py build ALL
 
 # Build and run example asm.js and WebAssembly program
-RUN HELLO_C="${HOME:?}"/hello.c && HELLO_JS="${HOME:?}"/hello.js && MSG='Hello, World!' \
-	&& printf '%s\n' '#include <stdio.h>' "int main(){puts(\"${MSG:?}\");}" > "${HELLO_C:?}" \
+RUN TESTDIR="${HOME:?}"/test/ && mkdir "${TESTDIR:?}" && cd "${TESTDIR:?}" \
+	&& PRINTMSG='Hello, World!' \
+	&& printf '%s\n' '#include <stdio.h>' "int main(){puts(\"${PRINTMSG:?}\");}" > ./hello.c \
 	&& printf '%s\n' 'Testing asm.js build...' \
-	&& emcc -s WASM=0 "${HELLO_C:?}" -o "${HELLO_JS:?}" && [ "$(node "${HELLO_JS:?}")" = "${MSG:?}" ] \
+	&& emcc -s WASM=0 ./hello.c -o ./hello.js && [ "$(node ./hello.js)" = "${PRINTMSG:?}" ] \
 	&& printf '%s\n' 'Testing WebAssembly build...' \
-	&& emcc -s WASM=1 "${HELLO_C:?}" -o "${HELLO_JS:?}" && [ "$(node "${HELLO_JS:?}")" = "${MSG:?}" ] \
-	&& rm -f "${HELLO_C:?}" "${HELLO_JS:?}"
+	&& emcc -s WASM=1 ./hello.c -o ./hello.js && [ "$(node ./hello.js)" = "${PRINTMSG:?}" ] \
+	&& rm -rf "${TESTDIR:?}"
 
 WORKDIR /home/emscripten/
 CMD ["/bin/bash"]
