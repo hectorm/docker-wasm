@@ -118,6 +118,7 @@ RUN VERSION=$(curl -sSfL 'https://golang.org/VERSION?m=text') \
 	&& URL="https://dl.google.com/go/${VERSION:?}.linux-amd64.tar.gz" \
 	&& curl -sSfL "${URL:?}" | tar -xz --strip-components=1 -C "${GOROOT:?}"
 ENV PATH=${GOROOT}/bin:${PATH}
+ENV PATH=${GOROOT}/misc/wasm:${PATH}
 ENV PATH=${GOPATH}/bin:${PATH}
 RUN command -V go && go version
 
