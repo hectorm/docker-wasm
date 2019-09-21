@@ -15,6 +15,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		file \
 		git \
 		gnupg \
+		libssl-dev \
 		libtool \
 		locales \
 		lsb-release \
@@ -65,18 +66,20 @@ RUN printf '%s\n' "${TZ:?}" > /etc/timezone
 
 # Drop root privileges
 USER emscripten:emscripten
+ENV USER=emscripten
+ENV HOME=/home/emscripten
 
 # Initialize PATH
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV PATH=/home/emscripten/.local/bin:${PATH}
+ENV PATH=${HOME}/.local/bin:${PATH}
 
 # Install Emscripten
 ARG EMSDK_TREEISH=master
 ARG EMSDK_REMOTE=https://github.com/emscripten-core/emsdk.git
-ENV EMSDK=/home/emscripten/.emsdk
+ENV EMSDK=${HOME}/.emsdk
 ENV EMSDK_NODE=${EMSDK}/node/latest/bin/node
-ENV EM_CONFIG=/home/emscripten/.emscripten
-ENV EM_CACHE=/home/emscripten/.emscripten_cache
+ENV EM_CONFIG=${HOME}/.emscripten
+ENV EM_CACHE=${HOME}/.emscripten_cache
 RUN mkdir -p "${EMSDK:?}" "${EM_CACHE:?}"
 RUN cd "${EMSDK:?}" \
 	&& git clone "${EMSDK_REMOTE:?}" ./ \
@@ -99,8 +102,8 @@ RUN command -V node && node --version
 RUN command -V npm && npm --version
 
 # Install Rust
-ENV RUSTUP_HOME=/home/emscripten/.rustup
-ENV CARGO_HOME=/home/emscripten/.cargo
+ENV RUSTUP_HOME=${HOME}/.rustup
+ENV CARGO_HOME=${HOME}/.cargo
 RUN mkdir -p "${RUSTUP_HOME:?}" "${CARGO_HOME:?}"
 RUN URL='https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init' \
 	&& curl -sSfL "${URL:?}" -o "${HOME:?}"/rustup-init && chmod 755 "${HOME:?}"/rustup-init \
@@ -110,9 +113,16 @@ RUN command -V rustup && rustup --version
 RUN command -V rustc && rustc --version
 RUN command -V cargo && cargo --version
 
+# Install some packages from Cargo
+RUN cargo install cargo-generate wasm-pack wasm-snip
+RUN rustup target add wasm32-unknown-unknown
+RUN command -V cargo-generate && cargo-generate --version
+RUN command -V wasm-pack && wasm-pack --version
+RUN command -V wasm-snip && wasm-snip --version
+
 # Install Go
-ENV GOROOT=/home/emscripten/.goroot
-ENV GOPATH=/home/emscripten/.gopath
+ENV GOROOT=${HOME}/.goroot
+ENV GOPATH=${HOME}/.gopath
 RUN mkdir -p "${GOROOT:?}" "${GOPATH:?}/bin" "${GOPATH:?}/src"
 RUN VERSION=$(curl -sSfL 'https://golang.org/VERSION?m=text') \
 	&& URL="https://dl.google.com/go/${VERSION:?}.linux-amd64.tar.gz" \
@@ -123,7 +133,7 @@ ENV PATH=${GOPATH}/bin:${PATH}
 RUN command -V go && go version
 
 # Install Wasmer
-ENV WASMER_DIR=/home/emscripten/.wasmer
+ENV WASMER_DIR=${HOME}/.wasmer
 ENV WASMER_CACHE_DIR=${WASMER_DIR}/cache
 RUN mkdir -p "${WASMER_DIR:?}" "${WASMER_CACHE_DIR:?}"
 RUN URL='https://github.com/wasmerio/wasmer/releases/latest/download/wasmer-linux-amd64.tar.gz' \
@@ -133,8 +143,8 @@ ENV PATH=${WASMER_DIR}/globals/wapm_packages/.bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
 # Install Yarn
-ENV YARN_DIR=/home/emscripten/.yarn
-ENV YARN_GLOBAL_DIR=/home/emscripten/.config/yarn/global
+ENV YARN_DIR=${HOME}/.yarn
+ENV YARN_GLOBAL_DIR=${HOME}/.config/yarn/global
 RUN mkdir -p "${YARN_DIR:?}" "${YARN_GLOBAL_DIR:?}"
 RUN URL='https://yarnpkg.com/latest.tar.gz' \
 	&& curl -sSfL "${URL:?}" | tar -xz --strip-components=1 -C "${YARN_DIR:?}"
@@ -155,5 +165,5 @@ RUN TESTDIR="${HOME:?}"/test/ && mkdir "${TESTDIR:?}" && cd "${TESTDIR:?}" \
 	&& emcc -s WASM=1 ./hello.c -o ./hello.js && [ "$(node ./hello.js)" = "${PRINTMSG:?}" ] \
 	&& rm -rf "${TESTDIR:?}"
 
-WORKDIR /home/emscripten/
+WORKDIR ${HOME}
 CMD ["/bin/bash"]
