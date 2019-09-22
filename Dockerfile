@@ -154,8 +154,8 @@ ENV PATH=${YARN_DIR}/bin:${PATH}
 ENV PATH=${YARN_GLOBAL_DIR}/node_modules/.bin:${PATH}
 RUN command -V yarn && yarn --version
 
-# Pre-generate all Emscripten system libraries
-# RUN embuilder.py build ALL
+# Build some Emscripten system libraries
+RUN embuilder.py build libjpeg libpng zlib
 
 # Build and run example asm.js and WebAssembly program
 RUN TESTDIR="${HOME:?}"/test/ && mkdir "${TESTDIR:?}" && cd "${TESTDIR:?}" \
