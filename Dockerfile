@@ -77,22 +77,22 @@ ENV PATH=${HOME}/.local/bin:${PATH}
 ARG EMSDK_TREEISH=master
 ARG EMSDK_REMOTE=https://github.com/emscripten-core/emsdk.git
 ENV EMSDK=${HOME}/.emsdk
-ENV EMSDK_NODE=${EMSDK}/node/latest/bin/node
 ENV EM_CONFIG=${HOME}/.emscripten
+ENV EM_PORTS=${HOME}/.emscripten_ports
 ENV EM_CACHE=${HOME}/.emscripten_cache
-RUN mkdir -p "${EMSDK:?}" "${EM_CACHE:?}"
+RUN mkdir -p "${EMSDK:?}" "${EM_PORTS:?}" "${EM_CACHE:?}"
 RUN cd "${EMSDK:?}" \
 	&& git clone "${EMSDK_REMOTE:?}" ./ \
 	&& git checkout "${EMSDK_TREEISH:?}" \
 	&& git submodule update --init --recursive
 RUN cd "${EMSDK:?}" \
 	&& ./emsdk install latest-upstream \
-	&& ./emsdk activate latest-upstream \
-	&& ln -rs "${EMSDK:?}"/node/*/ "${EMSDK:?}"/node/latest
+	&& ./emsdk activate latest-upstream
+RUN ln -rs "${EMSDK:?}"/node/*/ "${EMSDK:?}"/node/current
 ENV PATH=${EMSDK}:${PATH}
 ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
 ENV PATH=${EMSDK}/upstream/bin:${PATH}
-ENV PATH=${EMSDK}/node/latest/bin:${PATH}
+ENV PATH=${EMSDK}/node/current/bin:${PATH}
 RUN command -V emcc && emcc --version
 RUN command -V em++ && em++ --version
 RUN command -V asm2wasm && asm2wasm --version
@@ -114,7 +114,8 @@ RUN command -V rustc && rustc --version
 RUN command -V cargo && cargo --version
 
 # Install some packages from Cargo
-RUN cargo install cargo-generate wasm-pack wasm-snip
+RUN cargo install cargo-generate wasm-pack wasm-snip \
+	&& rm -rf "${CARGO_HOME:?}"/registry/
 RUN rustup target add wasm32-unknown-unknown
 RUN command -V cargo-generate && cargo-generate --version
 RUN command -V wasm-pack && wasm-pack --version
@@ -153,7 +154,7 @@ ENV PATH=${YARN_GLOBAL_DIR}/node_modules/.bin:${PATH}
 RUN command -V yarn && yarn --version
 
 # Pre-generate all Emscripten system libraries
-RUN embuilder.py build ALL
+# RUN embuilder.py build ALL
 
 # Build and run example asm.js and WebAssembly program
 RUN TESTDIR="${HOME:?}"/test/ && mkdir "${TESTDIR:?}" && cd "${TESTDIR:?}" \
