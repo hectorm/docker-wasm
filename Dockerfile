@@ -116,6 +116,7 @@ RUN command -V cargo && cargo --version
 # Install some packages from Cargo
 RUN cargo install cargo-generate wasm-pack wasm-snip \
 	&& rm -rf "${CARGO_HOME:?}"/registry/
+RUN rustup target add wasm32-unknown-emscripten
 RUN rustup target add wasm32-unknown-unknown
 RUN command -V cargo-generate && cargo-generate --version
 RUN command -V wasm-pack && wasm-pack --version
