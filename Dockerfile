@@ -116,7 +116,7 @@ RUN command -V cargo && cargo --version
 # Install some packages from Cargo
 RUN cargo install cargo-generate wasm-pack wasm-snip \
 	&& rm -rf "${CARGO_HOME:?}"/registry/
-RUN rustup target add wasm32-unknown-emscripten
+RUN rustup target add wasm32-wasi
 RUN rustup target add wasm32-unknown-unknown
 RUN command -V cargo-generate && cargo-generate --version
 RUN command -V wasm-pack && wasm-pack --version
@@ -157,15 +157,49 @@ RUN command -V yarn && yarn --version
 # Build some Emscripten system libraries
 RUN embuilder.py build libjpeg libpng zlib
 
-# Build and run example asm.js and WebAssembly program
-RUN TESTDIR="${HOME:?}"/test/ && mkdir "${TESTDIR:?}" && cd "${TESTDIR:?}" \
-	&& PRINTMSG='Hello, World!' \
-	&& printf '%s\n' '#include <stdio.h>' "int main(){puts(\"${PRINTMSG:?}\");}" > ./hello.c \
-	&& printf '%s\n' 'Testing asm.js build...' \
-	&& emcc -s WASM=0 ./hello.c -o ./hello.js && [ "$(node ./hello.js)" = "${PRINTMSG:?}" ] \
-	&& printf '%s\n' 'Testing WebAssembly build...' \
-	&& emcc -s WASM=1 ./hello.c -o ./hello.js && [ "$(node ./hello.js)" = "${PRINTMSG:?}" ] \
-	&& rm -rf "${TESTDIR:?}"
+# Build example C program
+RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+	# Create example
+	&& MSGIN='Hello, World!' \
+	&& printf '#include <stdio.h>\nint main(){puts("%s");}' "${MSGIN:?}" > ./hello.c \
+	# Compile to asm.js
+	&& printf '%s\n' 'Compiling C to asm.js...' \
+	&& emcc -s WASM=0 ./hello.c -o ./hello.js \
+	&& MSGOUT=$(node ./hello.js) \
+	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
+	# Compile to WebAssembly
+	&& printf '%s\n' 'Compiling C to WebAssembly...' \
+	&& emcc -s WASM=1 ./hello.c -o ./hello.js \
+	&& MSGOUT=$(node ./hello.js) \
+	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
+	# Cleanup
+	&& rm -rf "${HOME:?}"/test/
+
+# Build example Rust program
+RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+	# Create example
+	&& MSGIN='Hello, World!' \
+	&& printf 'fn main(){println!("%s");}' "${MSGIN:?}" > ./hello.rs \
+	# Compile to WebAssembly
+	&& printf '%s\n' 'Compiling Rust to WebAssembly...' \
+	&& rustc ./hello.rs --target=wasm32-wasi -o ./hello.wasm \
+	&& MSGOUT=$(wasmer run ./hello.wasm) \
+	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
+	# Cleanup
+	&& rm -rf "${HOME:?}"/test/
+
+# Build example Go program
+RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+	# Create example
+	&& MSGIN='Hello, World!' \
+	&& printf 'package main;import "fmt";func main(){fmt.Println("%s");}' "${MSGIN:?}" > ./hello.go \
+	# Compile to WebAssembly
+	&& printf '%s\n' 'Compiling Go to WebAssembly...' \
+	&& GOOS=js GOARCH=wasm go build -o hello.wasm hello.go \
+	&& MSGOUT=$(node "${GOROOT:?}"/misc/wasm/wasm_exec.js ./hello.wasm) \
+	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
+	# Cleanup
+	&& rm -rf "${HOME:?}"/test/
 
 WORKDIR ${HOME}
 CMD ["/bin/bash"]
