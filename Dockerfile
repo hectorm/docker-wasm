@@ -1,3 +1,7 @@
+##################################################
+## "emscripten" stage
+##################################################
+
 FROM docker.io/ubuntu:18.04 AS emscripten
 
 # Install system packages
