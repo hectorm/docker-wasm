@@ -126,7 +126,7 @@ RUN command -V wasm-snip && wasm-snip --version
 # Install Go
 ENV GOROOT=${HOME}/.goroot
 ENV GOPATH=${HOME}/.gopath
-RUN mkdir -p "${GOROOT:?}" "${GOPATH:?}/bin" "${GOPATH:?}/src"
+RUN mkdir -p "${GOROOT:?}" "${GOPATH:?}"/bin/ "${GOPATH:?}"/src/
 RUN VERSION=$(curl -sSfL 'https://golang.org/VERSION?m=text') \
 	&& URL="https://dl.google.com/go/${VERSION:?}.linux-amd64.tar.gz" \
 	&& curl -sSfL "${URL:?}" | tar -xz --strip-components=1 -C "${GOROOT:?}"
@@ -134,6 +134,15 @@ ENV PATH=${GOROOT}/bin:${PATH}
 ENV PATH=${GOROOT}/misc/wasm:${PATH}
 ENV PATH=${GOPATH}/bin:${PATH}
 RUN command -V go && go version
+
+# Install Wasmtime
+ENV WASMTIME_HOME=${HOME}/.wasmtime
+RUN mkdir -p "${WASMTIME_HOME:?}"/bin/
+RUN URL='https://github.com/bytecodealliance/wasmtime/releases/download/dev/wasmtime-dev-x86_64-linux.tar.xz' \
+	&& curl -sSfL "${URL:?}" | tar -xJ --strip-components=1 -C "${WASMTIME_HOME:?}" \
+	&& mv "${WASMTIME_HOME:?}"/wasmtime "${WASMTIME_HOME:?}"/bin/
+ENV PATH=${WASMTIME_HOME}/bin:${PATH}
+RUN command -V wasmtime && wasmtime --version
 
 # Install Wasmer
 ENV WASMER_DIR=${HOME}/.wasmer
@@ -184,6 +193,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Compile to WebAssembly
 	&& printf '%s\n' 'Compiling Rust to WebAssembly...' \
 	&& rustc ./hello.rs --target=wasm32-wasi -o ./hello.wasm \
+	&& MSGOUT=$(wasmtime run ./hello.wasm) \
+	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
 	# Cleanup
@@ -196,7 +207,7 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& printf 'package main;import "fmt";func main(){fmt.Println("%s");}' "${MSGIN:?}" > ./hello.go \
 	# Compile to WebAssembly
 	&& printf '%s\n' 'Compiling Go to WebAssembly...' \
-	&& GOOS=js GOARCH=wasm go build -o hello.wasm hello.go \
+	&& GOOS=js GOARCH=wasm go build -o ./hello.wasm ./hello.go \
 	&& MSGOUT=$(node "${GOROOT:?}"/misc/wasm/wasm_exec.js ./hello.wasm) \
 	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
 	# Cleanup
