@@ -2,7 +2,7 @@
 ## "emscripten" stage
 ##################################################
 
-FROM docker.io/ubuntu:18.04 AS emscripten
+FROM docker.io/ubuntu:20.04 AS emscripten
 
 # Install system packages
 RUN export DEBIAN_FRONTEND=noninteractive \
@@ -28,11 +28,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		openjdk-8-jdk \
 		openssh-client \
 		pkgconf \
-		python \
-		python-dev \
-		python-pip \
-		python-setuptools \
-		python-wheel \
+		python-dev-is-python3 \
+		python-is-python3 \
 		python3 \
 		python3-dev \
 		python3-pip \
@@ -59,14 +56,14 @@ RUN useradd \
 		emscripten
 
 # Setup locale
-RUN printf '%s\n' 'en_US.UTF-8 UTF-8' > /etc/locale.gen
-RUN localedef -c -i en_US -f UTF-8 en_US.UTF-8 ||:
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+RUN printf '%s\n' "${LANG:?} UTF-8" > /etc/locale.gen \
+	&& localedef -c -i "${LANG%%.*}" -f UTF-8 "${LANG:?}" ||:
 
 # Setup timezone
 ENV TZ=UTC
-RUN ln -snf "/usr/share/zoneinfo/${TZ:?}" /etc/localtime
-RUN printf '%s\n' "${TZ:?}" > /etc/timezone
+RUN printf '%s\n' "${TZ:?}" > /etc/timezone \
+	&& ln -snf "/usr/share/zoneinfo/${TZ:?}" /etc/localtime
 
 # Drop root privileges
 USER emscripten:emscripten
