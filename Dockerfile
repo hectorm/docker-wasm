@@ -96,7 +96,6 @@ ENV PATH=${EMSDK}/upstream/bin:${PATH}
 ENV PATH=${EMSDK}/node/current/bin:${PATH}
 RUN command -V emcc && emcc --version
 RUN command -V em++ && em++ --version
-RUN command -V asm2wasm && asm2wasm --version
 RUN command -V clang && clang --version
 RUN command -V llvm-ar && llvm-ar --version
 RUN command -V node && node --version
