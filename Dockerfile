@@ -78,7 +78,7 @@ ENV PATH=${HOME}/.local/bin:${PATH}
 ARG EMSDK_TREEISH=master
 ARG EMSDK_REMOTE=https://github.com/emscripten-core/emsdk.git
 ENV EMSDK=${HOME}/.emsdk
-ENV EM_CONFIG=${HOME}/.emscripten
+ENV EM_CONFIG=${EMSDK}/.emscripten
 ENV EM_PORTS=${HOME}/.emscripten_ports
 ENV EM_CACHE=${HOME}/.emscripten_cache
 RUN mkdir -p "${EMSDK:?}" "${EM_PORTS:?}" "${EM_CACHE:?}"
@@ -88,7 +88,7 @@ RUN cd "${EMSDK:?}" \
 	&& git submodule update --init --recursive
 RUN cd "${EMSDK:?}" \
 	&& ./emsdk install latest-upstream \
-	&& ./emsdk activate --no-embedded latest-upstream
+	&& ./emsdk activate latest-upstream
 RUN ln -rs "${EMSDK:?}"/node/*/ "${EMSDK:?}"/node/current
 ENV PATH=${EMSDK}:${PATH}
 ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
