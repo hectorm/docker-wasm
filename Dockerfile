@@ -20,6 +20,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		git \
 		gnupg \
 		libssl-dev \
+		libtinfo5 \
 		libtool \
 		locales \
 		lsb-release \
