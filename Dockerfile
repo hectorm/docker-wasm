@@ -26,7 +26,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		lsb-release \
 		mime-support \
 		nano \
-		openjdk-8-jdk \
 		openssh-client \
 		pkgconf \
 		python-dev-is-python3 \
