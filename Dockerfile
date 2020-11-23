@@ -89,7 +89,8 @@ RUN cd "${EMSDK:?}" \
 	&& git submodule update --init --recursive
 RUN cd "${EMSDK:?}" \
 	&& ./emsdk install latest-upstream \
-	&& ./emsdk activate latest-upstream
+	&& ./emsdk activate latest-upstream \
+	&& rm -rf "${HOME}"/.cache/ "${HOME}"/.npm/
 RUN ln -rs "${EMSDK:?}"/node/*/ "${EMSDK:?}"/node/current
 ENV PATH=${EMSDK}:${PATH}
 ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
