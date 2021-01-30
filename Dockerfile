@@ -113,13 +113,12 @@ ENV PATH=${CARGO_HOME}/bin:${PATH}
 RUN command -V rustup && rustup --version
 RUN command -V rustc && rustc --version
 RUN command -V cargo && cargo --version
-
-# Install some packages from Cargo
-RUN cargo install cargo-generate wasm-pack wasm-snip \
-	&& rm -rf "${CARGO_HOME:?}"/registry/
 RUN rustup target add wasm32-wasi
 RUN rustup target add wasm32-unknown-unknown
-RUN command -V cargo-generate && cargo-generate --version
+
+# Install some packages from Cargo
+RUN cargo install wasm-pack wasm-snip \
+	&& rm -rf "${CARGO_HOME:?}"/registry/
 RUN command -V wasm-pack && wasm-pack --version
 RUN command -V wasm-snip && wasm-snip --version
 
