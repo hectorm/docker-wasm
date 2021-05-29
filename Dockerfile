@@ -75,7 +75,7 @@ ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV PATH=${HOME}/.local/bin:${PATH}
 
 # Install Emscripten
-ARG EMSDK_TREEISH=master
+ARG EMSDK_TREEISH=main
 ARG EMSDK_REMOTE=https://github.com/emscripten-core/emsdk.git
 ENV EMSDK=${HOME}/.emsdk
 ENV EM_CONFIG=${EMSDK}/.emscripten
