@@ -22,6 +22,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		libssl-dev \
 		libtinfo5 \
 		libtool \
+		libxkbcommon0 \
 		locales \
 		lsb-release \
 		mime-support \
