@@ -208,7 +208,7 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Compile to WebAssembly
 	&& printf '%s\n' 'Compiling Go to WebAssembly...' \
 	&& GOOS=js GOARCH=wasm go build -o ./hello.wasm ./hello.go \
-	&& MSGOUT=$(node "${GOROOT:?}"/misc/wasm/wasm_exec.js ./hello.wasm) \
+	&& MSGOUT=$(node "${GOROOT:?}"/misc/wasm/wasm_exec_node.js ./hello.wasm) \
 	&& ([ "${MSGOUT:?}" = "${MSGIN:?}" ] || exit 1) \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/
