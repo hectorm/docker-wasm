@@ -2,7 +2,7 @@
 ## "emscripten" stage
 ##################################################
 
-FROM docker.io/ubuntu:20.04 AS emscripten
+FROM docker.io/ubuntu:22.04 AS main
 
 # Install system packages
 RUN export DEBIAN_FRONTEND=noninteractive \
