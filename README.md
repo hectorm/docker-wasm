@@ -1,12 +1,10 @@
-# Emscripten on Docker
+# WebAssembly playground
 
-A Docker image with the latest versions of
-[Emscripten](https://emscripten.org),
+Developer playground for [WebAssembly](https://webassembly.org) with the latest versions of
 [Rust](https://rust-lang.org),
-[Go](https://golang.org),
-[Wasmer](https://wasmer.io),
-[Node.js](https://nodejs.org), 
-[Yarn](https://yarnpkg.com) and
-basic development tools.
-
-It aims to be a developer playground for [WebAssembly](https://webassembly.org).
+[Go](https://go.dev),
+[Node.js](https://nodejs.org),
+[Emscripten](https://emscripten.org),
+[WASI SDK](https://github.com/WebAssembly/wasi-sdk),
+[Wasmtime](https://wasmtime.dev) and
+[Wasmer](https://wasmer.io).
