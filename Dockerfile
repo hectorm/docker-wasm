@@ -116,6 +116,7 @@ RUN command -V rustc && rustc --version
 RUN command -V cargo && cargo --version
 RUN rustup target add wasm32-wasi
 RUN rustup target add wasm32-unknown-unknown
+RUN rustup target add wasm32-unknown-emscripten
 
 # Install some packages from Cargo
 RUN cargo install wasm-pack wasm-snip \
