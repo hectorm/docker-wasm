@@ -128,7 +128,8 @@ RUN command -V wasm-snip && wasm-snip --version
 ENV GOROOT=${HOME}/.goroot
 ENV GOPATH=${HOME}/.gopath
 RUN mkdir -p "${GOROOT:?}" "${GOPATH:?}"/bin/ "${GOPATH:?}"/src/
-RUN VERSION=$(curl -sSfL 'https://go.dev/VERSION?m=text' | head -1) \
+RUN VERSION='go1.20.7' \
+	# VERSION=$(curl -sSfL 'https://go.dev/VERSION?m=text' | head -1) \
 	&& URL="https://dl.google.com/go/${VERSION:?}.linux-amd64.tar.gz" \
 	&& curl -sSfL "${URL:?}" | tar -xz --strip-components=1 -C "${GOROOT:?}"
 ENV PATH=${GOROOT}/bin:${PATH}
