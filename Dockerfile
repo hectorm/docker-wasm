@@ -88,8 +88,8 @@ RUN cd "${EMSDK:?}" \
 	&& git checkout "${EMSDK_TREEISH:?}" \
 	&& git submodule update --init --recursive
 RUN cd "${EMSDK:?}" \
-	&& ./emsdk install latest-upstream \
-	&& ./emsdk activate latest-upstream \
+	&& ./emsdk install latest \
+	&& ./emsdk activate latest \
 	&& rm -rf "${HOME}"/.cache/ "${HOME}"/.npm/
 RUN ln -rs "${EMSDK:?}"/node/*/ "${EMSDK:?}"/node/current
 ENV PATH=${EMSDK}:${PATH}
