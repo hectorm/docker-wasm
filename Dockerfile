@@ -118,12 +118,6 @@ RUN rustup target add wasm32-wasi
 RUN rustup target add wasm32-unknown-unknown
 RUN rustup target add wasm32-unknown-emscripten
 
-# Install some packages from Cargo
-RUN cargo install wasm-pack wasm-snip \
-	&& rm -rf "${CARGO_HOME:?}"/registry/
-RUN command -V wasm-pack && wasm-pack --version
-RUN command -V wasm-snip && wasm-snip --version
-
 # Install Go
 ENV GOROOT=${HOME}/.goroot
 ENV GOPATH=${HOME}/.gopath
@@ -136,6 +130,16 @@ ENV PATH=${GOROOT}/bin:${PATH}
 ENV PATH=${GOROOT}/misc/wasm:${PATH}
 ENV PATH=${GOPATH}/bin:${PATH}
 RUN command -V go && go version
+
+# Install Yarn
+ENV YARN_DIR=${HOME}/.yarn
+ENV YARN_GLOBAL_DIR=${HOME}/.config/yarn/global
+RUN mkdir -p "${YARN_DIR:?}" "${YARN_GLOBAL_DIR:?}"
+RUN URL='https://yarnpkg.com/latest.tar.gz' \
+	&& curl -sSfL "${URL:?}" | tar -xz --strip-components=1 -C "${YARN_DIR:?}"
+ENV PATH=${YARN_DIR}/bin:${PATH}
+ENV PATH=${YARN_GLOBAL_DIR}/node_modules/.bin:${PATH}
+RUN command -V yarn && yarn --version
 
 # Install Wasmtime
 ENV WASMTIME_HOME=${HOME}/.wasmtime
@@ -156,15 +160,16 @@ ENV PATH=${WASMER_DIR}/bin:${PATH}
 ENV PATH=${WASMER_DIR}/globals/wapm_packages/.bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
-# Install Yarn
-ENV YARN_DIR=${HOME}/.yarn
-ENV YARN_GLOBAL_DIR=${HOME}/.config/yarn/global
-RUN mkdir -p "${YARN_DIR:?}" "${YARN_GLOBAL_DIR:?}"
-RUN URL='https://yarnpkg.com/latest.tar.gz' \
-	&& curl -sSfL "${URL:?}" | tar -xz --strip-components=1 -C "${YARN_DIR:?}"
-ENV PATH=${YARN_DIR}/bin:${PATH}
-ENV PATH=${YARN_GLOBAL_DIR}/node_modules/.bin:${PATH}
-RUN command -V yarn && yarn --version
+# Install Wasix
+RUN cargo install cargo-wasix \
+	&& rm -rf "${CARGO_HOME:?}"/registry/
+RUN cargo wasix --version
+
+# Install WebAssembly tools for Rust
+RUN cargo install wasm-pack wasm-snip \
+	&& rm -rf "${CARGO_HOME:?}"/registry/
+RUN command -V wasm-pack && wasm-pack --version
+RUN command -V wasm-snip && wasm-snip --version
 
 # Build some Emscripten system libraries
 RUN embuilder.py build libjpeg libpng zlib
