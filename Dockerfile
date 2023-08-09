@@ -187,8 +187,9 @@ RUN command -V wasm-snip && wasm-snip --version
 RUN cargo wasi --version
 RUN cargo wasix --version
 
-# Build some Emscripten system libraries
-RUN embuilder.py build libjpeg libpng zlib
+# Pre-build and cache some libraries
+RUN embuilder.py build MINIMAL zlib bzip2
+RUN embuilder.py build MINIMAL_PIC zlib bzip2 --pic
 
 # Build sample C program
 RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
