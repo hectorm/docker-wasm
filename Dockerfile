@@ -196,6 +196,11 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, World!' \
 	&& printf '#include <stdio.h>\nint main(){puts("%s");}' "${MSGIN:?}" > ./hello.c \
+	# Compile to native
+	&& printf '%s\n' 'Compiling C to native...' \
+	&& clang ./hello.c -o ./hello \
+	&& MSGOUT=$(./hello) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling C to WASM...' \
 	&& emcc ./hello.c -o ./hello.js \
@@ -216,6 +221,11 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, World!' \
 	&& printf 'fn main(){println!("%s");}' "${MSGIN:?}" > ./hello.rs \
+	# Compile to native
+	&& printf '%s\n' 'Compiling Rust to native...' \
+	&& rustc ./hello.rs -o ./hello \
+	&& MSGOUT=$(./hello) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling Rust to WASM...' \
 	&& rustc ./hello.rs --target=wasm32-unknown-emscripten -o ./hello.js \
@@ -236,6 +246,11 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, World!' \
 	&& printf 'package main;import "fmt";func main(){fmt.Println("%s");}' "${MSGIN:?}" > ./hello.go \
+	# Compile to native
+	&& printf '%s\n' 'Compiling Go to native...' \
+	&& go build -o ./hello ./hello.go \
+	&& MSGOUT=$(./hello) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling Go to WASM...' \
 	&& GOOS=js GOARCH=wasm go build -o ./hello.wasm ./hello.go \
