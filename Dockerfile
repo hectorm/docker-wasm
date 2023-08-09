@@ -141,10 +141,10 @@ RUN command -V emcc && emcc --version
 RUN command -V em++ && em++ --version
 RUN command -V clang && clang --version
 
-# Install WASI SDK
-ENV WASI_SDK_DIR=${HOME}/.wasi-sdk
-ENV WASI_SYSROOT=${WASI_SDK_DIR}/share/wasi-sysroot
-RUN mkdir -p "${WASI_SDK_DIR:?}" "${WASI_SYSROOT:?}"
+# Install WASI SDK into Emscripten
+ENV WASI_SDK_PATH=${EMSDK}/upstream
+ENV WASI_SYSROOT=${WASI_SDK_PATH}/share/wasi-sysroot
+RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}"
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases/latest' \
 		| jq -r '.assets[] | select(.name | test("^wasi-sysroot-[0-9]+(\\.[0-9]+)*\\.tar\\.gz$")?) | .browser_download_url' \
 	) \
