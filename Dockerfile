@@ -191,6 +191,11 @@ RUN cargo wasix --version
 RUN embuilder.py build MINIMAL zlib bzip2
 RUN embuilder.py build MINIMAL_PIC zlib bzip2 --pic
 
+# Copy scripts
+COPY --chown=wasm:wasm ./scripts/bin/ ${HOME}/.local/bin
+RUN find "${HOME:?}"/.local/bin/ -type d -not -perm 0755 -exec chmod 0755 '{}' ';'
+RUN find "${HOME:?}"/.local/bin/ -type f -not -perm 0755 -exec chmod 0755 '{}' ';'
+
 # Build sample C program
 RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
@@ -208,7 +213,7 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling C to WASI...' \
-	&& clang ./hello.c --target=wasm32-wasi --sysroot="${WASI_SYSROOT:?}" -o ./hello.wasm \
+	&& wasicc ./hello.c -o ./hello.wasm \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \

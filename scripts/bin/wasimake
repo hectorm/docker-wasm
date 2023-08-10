@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -eua
+
+: "${HOST_CC:=${WASI_SDK_PATH:?}/bin/clang}"
+: "${HOST_CXX:=${WASI_SDK_PATH:?}/bin/clang++}"
+: "${HOST_CFLAGS:=-W}"
+: "${HOST_CXXFLAGS:=-W}"
+
+: "${WASI_CC:=${WASI_SDK_PATH:?}/bin/clang --target=wasm32-wasi --sysroot=${WASI_SYSROOT:?}}"
+: "${WASI_CXX:=${WASI_SDK_PATH:?}/bin/clang++ --target=wasm32-wasi --sysroot=${WASI_SYSROOT:?}}"
+: "${WASI_AR:=${WASI_SDK_PATH:?}/bin/llvm-ar}"
+: "${WASI_LD:=${WASI_SDK_PATH:?}/bin/wasm-ld}"
+: "${WASI_NM:=${WASI_SDK_PATH:?}/bin/llvm-nm}"
+: "${WASI_RANLIB:=${WASI_SDK_PATH:?}/bin/llvm-ranlib}"
+: "${WASI_STRIP:=${WASI_SDK_PATH:?}/bin/llvm-strip}"
+: "${WASI_OBJCOPY:=${WASI_SDK_PATH:?}/bin/llvm-objcopy}"
+: "${WASI_OBJDUMP:=${WASI_SDK_PATH:?}/bin/llvm-objdump}"
+
+: "${CC:=${WASI_CC:?}}"
+: "${CXX:=${WASI_CXX:?}}"
+: "${AR:=${WASI_AR:?}}"
+: "${LD:=${WASI_LD:?}}"
+: "${LDSHARED:=${WASI_LD:?}}"
+: "${NM:=${WASI_NM:?}}"
+: "${RANLIB:=${WASI_RANLIB:?}}"
+: "${STRIP:=${WASI_STRIP:?}}"
+: "${OBJCOPY:=${WASI_OBJCOPY:?}}"
+: "${OBJDUMP:=${WASI_OBJDUMP:?}}"
+
+exec "${@-}"
