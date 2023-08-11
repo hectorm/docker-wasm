@@ -214,7 +214,8 @@ RUN find "${HOME:?}"/.local/bin/ -type d -not -perm 0755 -exec chmod 0755 '{}' '
 RUN find "${HOME:?}"/.local/bin/ -type f -not -perm 0755 -exec chmod 0755 '{}' ';'
 
 # Build sample C program
-RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+RUN mkdir "${HOME:?}"/test/ \
+	&& cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, world!' \
 	&& printf '%s\n' '#include <stdio.h>' 'int main(){puts("'"${MSGIN:?}"'");}' > ./hello.c \
@@ -236,10 +237,12 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Cleanup
-	&& rm -rf "${HOME:?}"/test/
+	&& rm -rf "${HOME:?}"/test/ \
+	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
 
 # Build sample Rust program
-RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+RUN mkdir "${HOME:?}"/test/ \
+	&& cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, world!' \
 	&& printf '%s\n' 'fn main(){println!("'"${MSGIN:?}"'");}' > ./hello.rs \
@@ -261,10 +264,12 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Cleanup
-	&& rm -rf "${HOME:?}"/test/
+	&& rm -rf "${HOME:?}"/test/ \
+	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
 
 # Build sample Go program
-RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+RUN mkdir "${HOME:?}"/test/ \
+	&& cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, world!' \
 	&& printf '%s\n' 'package main;import "fmt";func main(){fmt.Println("'"${MSGIN:?}"'");}' > ./hello.go \
@@ -286,10 +291,12 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Cleanup
-	&& rm -rf "${HOME:?}"/test/
+	&& rm -rf "${HOME:?}"/test/ \
+	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
 
 # Build sample Zig program
-RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+RUN mkdir "${HOME:?}"/test/ \
+	&& cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, world!' \
 	&& printf '%s\n' 'pub fn main() !void{try@import("std").io.getStdOut().writer().print("'"${MSGIN:?}"'\n",.{});}' > ./hello.zig \
@@ -306,7 +313,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	# Cleanup
-	&& rm -rf "${HOME:?}"/test/
+	&& rm -rf "${HOME:?}"/test/ \
+	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
 
 WORKDIR ${HOME}
 CMD ["/bin/bash"]
