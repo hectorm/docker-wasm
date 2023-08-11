@@ -2,7 +2,7 @@
 ## "main" stage
 ##################################################
 
-FROM docker.io/debian:sid AS main
+FROM docker.io/debian:sid-slim AS main
 
 # Install system packages
 RUN export DEBIAN_FRONTEND=noninteractive \
