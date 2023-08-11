@@ -7,8 +7,8 @@ set -eua
 : "${HOST_CFLAGS:=-W}"
 : "${HOST_CXXFLAGS:=-W}"
 
-: "${WASI_CC:=${WASI_SDK_PATH:?}/bin/clang --target=wasm32-wasi --sysroot=${WASI_SYSROOT:?}}"
-: "${WASI_CXX:=${WASI_SDK_PATH:?}/bin/clang++ --target=wasm32-wasi --sysroot=${WASI_SYSROOT:?}}"
+: "${WASI_CC:=${WASI_SDK_PATH:?}/bin/clang --target=${WASI_TARGET:-wasm32-wasi} --sysroot=${WASI_SYSROOT:?}}"
+: "${WASI_CXX:=${WASI_SDK_PATH:?}/bin/clang++ --target=${WASI_TARGET:-wasm32-wasi} --sysroot=${WASI_SYSROOT:?}}"
 : "${WASI_AR:=${WASI_SDK_PATH:?}/bin/llvm-ar}"
 : "${WASI_LD:=${WASI_SDK_PATH:?}/bin/wasm-ld}"
 : "${WASI_NM:=${WASI_SDK_PATH:?}/bin/llvm-nm}"
