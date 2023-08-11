@@ -69,6 +69,10 @@ RUN printf '%s\n' "${TZ:?}" > /etc/timezone \
 USER wasm:wasm
 ENV USER=wasm
 ENV HOME=/home/wasm
+ENV XDG_CONFIG_HOME=${HOME}/.config
+ENV XDG_CACHE_HOME=${HOME}/.cache
+ENV XDG_DATA_HOME=${HOME}/.local/share
+ENV XDG_STATE_HOME=${HOME}/.local/state
 
 # Initialize PATH
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
