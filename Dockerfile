@@ -119,17 +119,15 @@ RUN command -V node && node --version
 RUN command -V npm && npm --version
 
 # Install Emscripten
-ARG EMSDK_TREEISH=main
-ARG EMSDK_REMOTE=https://github.com/emscripten-core/emsdk.git
 ENV EMSDK=${HOME}/.emsdk
 ENV EM_CONFIG=${EMSDK}/.emscripten
 ENV EM_PORTS=${HOME}/.emscripten_ports
 ENV EM_CACHE=${HOME}/.emscripten_cache
 RUN mkdir -p "${EMSDK:?}" "${EM_PORTS:?}" "${EM_CACHE:?}"
-RUN cd "${EMSDK:?}" \
-	&& git clone "${EMSDK_REMOTE:?}" ./ \
-	&& git checkout "${EMSDK_TREEISH:?}" \
-	&& git submodule update --init --recursive
+RUN URL=$(curl -sSfL 'https://api.github.com/repos/emscripten-core/emsdk/tags' \
+		| jq -r 'sort_by(.name | split(".") | map(tonumber)) | .[-1].tarball_url' \
+	) \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${EMSDK:?}"
 RUN cd "${EMSDK:?}" \
 	&& ./emsdk install latest \
 	&& ./emsdk activate latest \
