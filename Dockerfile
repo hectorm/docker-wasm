@@ -177,13 +177,17 @@ ENV PATH=${WASMER_DIR}/bin:${PATH}
 ENV PATH=${WASMER_DIR}/globals/wapm_packages/.bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
-# Install some tools for Rust
-RUN cargo install wasm-pack wasm-snip cargo-wasi cargo-wasix \
+# Install "cargo wasi" and "cargo wasix"
+RUN cargo install cargo-wasi cargo-wasix \
+	&& rm -rf "${CARGO_HOME:?}"/registry/
+RUN cargo wasi --version
+RUN cargo wasix --version
+
+# Install some extra tools
+RUN cargo install wasm-pack wasm-snip \
 	&& rm -rf "${CARGO_HOME:?}"/registry/
 RUN command -V wasm-pack && wasm-pack --version
 RUN command -V wasm-snip && wasm-snip --version
-RUN cargo wasi --version
-RUN cargo wasix --version
 
 # Pre-build and cache some libraries
 RUN embuilder.py build MINIMAL zlib bzip2
