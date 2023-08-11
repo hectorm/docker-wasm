@@ -103,6 +103,17 @@ ENV PATH=${GOROOT}/misc/wasm:${PATH}
 ENV PATH=${GOPATH}/bin:${PATH}
 RUN command -V go && go version
 
+# Install Zig
+ENV ZIG_PATH=${HOME}/.zig
+RUN mkdir -p "${ZIG_PATH:?}"
+RUN URL=$(curl -sSfL 'https://ziglang.org/download/index.json' \
+		| jq -r 'to_entries | map(select(.key | test("^[0-9]+(\\.[0-9]+)*$"))) | sort_by(.value.date) | .[-1].value["x86_64-linux"].tarball' \
+	) \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${ZIG_PATH:?}" \
+	&& chmod 755 "${ZIG_PATH:?}"
+ENV PATH=${ZIG_PATH}:${PATH}
+RUN command -V zig && zig version
+
 # Install Node.js
 ENV FNM_DIR=${HOME}/.fnm
 RUN mkdir -p "${FNM_DIR:?}"
@@ -201,8 +212,8 @@ RUN find "${HOME:?}"/.local/bin/ -type f -not -perm 0755 -exec chmod 0755 '{}' '
 # Build sample C program
 RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
-	&& MSGIN='Hello, World!' \
-	&& printf '#include <stdio.h>\nint main(){puts("%s");}' "${MSGIN:?}" > ./hello.c \
+	&& MSGIN='Hello, world!' \
+	&& printf '%s\n' '#include <stdio.h>' 'int main(){puts("'"${MSGIN:?}"'");}' > ./hello.c \
 	# Compile to native
 	&& printf '%s\n' 'Compiling C to native...' \
 	&& clang ./hello.c -o ./hello \
@@ -226,8 +237,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 # Build sample Rust program
 RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
-	&& MSGIN='Hello, World!' \
-	&& printf 'fn main(){println!("%s");}' "${MSGIN:?}" > ./hello.rs \
+	&& MSGIN='Hello, world!' \
+	&& printf '%s\n' 'fn main(){println!("'"${MSGIN:?}"'");}' > ./hello.rs \
 	# Compile to native
 	&& printf '%s\n' 'Compiling Rust to native...' \
 	&& rustc ./hello.rs -o ./hello \
@@ -251,8 +262,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 # Build sample Go program
 RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
-	&& MSGIN='Hello, World!' \
-	&& printf 'package main;import "fmt";func main(){fmt.Println("%s");}' "${MSGIN:?}" > ./hello.go \
+	&& MSGIN='Hello, world!' \
+	&& printf '%s\n' 'package main;import "fmt";func main(){fmt.Println("'"${MSGIN:?}"'");}' > ./hello.go \
 	# Compile to native
 	&& printf '%s\n' 'Compiling Go to native...' \
 	&& go build -o ./hello ./hello.go \
@@ -266,6 +277,26 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Go to WASI...' \
 	&& GOOS=wasip1 GOARCH=wasm go build -o ./hello.wasm ./hello.go \
+	&& MSGOUT=$(wasmtime run ./hello.wasm) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& MSGOUT=$(wasmer run ./hello.wasm) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	# Cleanup
+	&& rm -rf "${HOME:?}"/test/
+
+# Build sample Zig program
+RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
+	# Create program
+	&& MSGIN='Hello, world!' \
+	&& printf '%s\n' 'pub fn main() !void{try@import("std").io.getStdOut().writer().print("'"${MSGIN:?}"'\n",.{});}' > ./hello.zig \
+	# Compile to native
+	&& printf '%s\n' 'Compiling Zig to native...' \
+	&& zig build-exe ./hello.zig \
+	&& MSGOUT=$(./hello) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	# Compile to WASI
+	&& printf '%s\n' 'Compiling Zig to WASI...' \
+	&& zig build-exe -target wasm32-wasi ./hello.zig \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
