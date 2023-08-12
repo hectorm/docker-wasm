@@ -159,13 +159,15 @@ ENV WASI_SDK_PATH=${EMSDK}/upstream
 ENV WASI_SYSROOT=${WASI_SDK_PATH}/share/wasi-sysroot
 RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}"
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^wasi-sysroot-[0-9]+(\\.[0-9]+)*\\.tar\\.gz$")?) | .browser_download_url' \
+		| jq -r '.assets[] | select(.name | test("^wasi-sdk-[0-9]+(\\.[0-9]+)*-linux\\.tar\\.gz$")?) | .browser_download_url' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${WASI_SYSROOT:?}"
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^libclang_rt\\.builtins-wasm32-wasi-[0-9]+(\\.[0-9]+)*\\.tar\\.gz$")?) | .browser_download_url' \
-	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x -C "$(clang --print-resource-dir)"
+	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${WASI_SDK_PATH:?}" \
+		-s "|/lib/clang/[0-9]*/|/lib/clang/$(basename "$(clang --print-resource-dir)")/|" \
+		'./wasi-sdk-*/lib/clang/[0-9]*/' \
+		'./wasi-sdk-*/share/'
+RUN [ -e "${WASI_SDK_PATH:?}"/share/cmake/Platform/ ] || mkdir "${WASI_SDK_PATH:?}"/share/cmake/Platform/
+RUN [ -e "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake ] || printf '%s\n' 'set(WASI 1)' > "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake
+RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk.cmake
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 RUN test -f "$(clang --print-resource-dir)"/lib/wasi/libclang_rt.builtins-wasm32.a
 

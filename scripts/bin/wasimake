@@ -31,4 +31,6 @@ set -eua
 : "${OBJCOPY=${WASI_OBJCOPY?}}"
 : "${OBJDUMP=${WASI_OBJDUMP?}}"
 
+: "${CMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH?}/share/cmake/wasi-sdk.cmake}"
+
 exec "${@:?You need to run ${0##*/} with another command}"
