@@ -11,7 +11,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		autoconf \
 		automake \
 		bash \
-		build-essential \
+		bzip2 \
 		ca-certificates \
 		cmake \
 		curl \
@@ -24,10 +24,13 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		libtool-bin \
 		locales \
 		lsb-release \
+		m4 \
+		make \
 		meson \
 		mime-support \
 		nano \
 		ninja-build \
+		perl \
 		pkgconf \
 		python-dev-is-python3 \
 		python-is-python3 \
@@ -35,10 +38,13 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		python3-dev \
 		python3-pip \
 		python3-venv \
+		rsync \
 		tzdata \
 		unzip \
 		wget \
+		xz-utils \
 		zip \
+		zstd \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Create wasm user and group
