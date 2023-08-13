@@ -168,7 +168,7 @@ RUN URL=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases
 		| jq -r '.assets[] | select(.name | test("^wasi-sdk-[0-9]+(\\.[0-9]+)*-linux\\.tar\\.gz$")?) | .browser_download_url' \
 	) \
 	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${WASI_SDK_PATH:?}" \
-		-s "|/lib/clang/[0-9]*/|/lib/clang/$(basename "$(clang --print-resource-dir)")/|" \
+		-s "#/lib/clang/[0-9]*/#/lib/clang/$(basename "$(clang --print-resource-dir)")/#" \
 		'./wasi-sdk-*/lib/clang/[0-9]*/' \
 		'./wasi-sdk-*/share/'
 RUN [ -e "${WASI_SDK_PATH:?}"/share/cmake/Platform/ ] || mkdir "${WASI_SDK_PATH:?}"/share/cmake/Platform/
@@ -176,6 +176,21 @@ RUN [ -e "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake ] || printf '%s\n'
 RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk.cmake
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 RUN test -f "$(clang --print-resource-dir)"/lib/wasi/libclang_rt.builtins-wasm32.a
+
+# Install WASIX sysroot into Emscripten
+ENV WASIX_SYSROOT32=${EMSDK}/upstream/share/wasix-sysroot32
+ENV WASIX_SYSROOT64=${EMSDK}/upstream/share/wasix-sysroot64
+ENV WASIX_SYSROOT=${WASIX_SYSROOT32}
+RUN mkdir -p "${WASIX_SYSROOT32:?}" "${WASIX_SYSROOT64:?}"
+RUN URL=$(curl -sSfL 'https://api.github.com/repos/wasix-org/rust/releases/latest' \
+		| jq -r '.assets[] | select(.name | test("^wasix-libc\\.tar\\.gz$")?) | .browser_download_url' \
+	) \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${WASIX_SYSROOT:?}"/../ \
+		-s '#/wasix-libc/sysroot\(32\|64\)/#/wasix-sysroot\1/#' \
+		'./wasix-libc/sysroot*/'
+RUN test -f "${WASIX_SYSROOT32:?}"/lib/wasm32-wasi/libc.a
+RUN test -f "${WASIX_SYSROOT64:?}"/lib/wasm64-wasi/libc.a
+RUN test -f "${WASIX_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 
 # Install Wasmtime
 ENV WASMTIME_HOME=${HOME}/.wasmtime
