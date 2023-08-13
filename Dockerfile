@@ -156,9 +156,11 @@ RUN cd "${EMSDK:?}" \
 ENV PATH=${EMSDK}:${PATH}
 ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
 ENV PATH=${EMSDK}/upstream/bin:${PATH}
+ENV WASM_OPT=${EMSDK}/upstream/bin/wasm-opt
 RUN command -V emcc && emcc --version
 RUN command -V em++ && em++ --version
 RUN command -V clang && clang --version
+RUN "${WASM_OPT:?}" --version
 
 # Install WASI SDK into Emscripten
 ENV WASI_SDK_PATH=${EMSDK}/upstream
