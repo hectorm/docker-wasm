@@ -267,19 +267,19 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& printf '%s\n' 'Compiling C to native...' \
 	&& clang ./hello.c -o ./hello \
 	&& MSGOUT=$(./hello) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling C to WASM...' \
 	&& emcc ./hello.c -o ./hello.js \
 	&& MSGOUT=$(node ./hello.js) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling C to WASI...' \
 	&& wasicc ./hello.c -o ./hello.wasm \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
@@ -294,19 +294,19 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& printf '%s\n' 'Compiling Rust to native...' \
 	&& rustc ./hello.rs -o ./hello \
 	&& MSGOUT=$(./hello) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling Rust to WASM...' \
 	&& rustc ./hello.rs --target=wasm32-unknown-emscripten -o ./hello.js \
 	&& MSGOUT=$(node ./hello.js) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Rust to WASI...' \
 	&& rustc ./hello.rs --target=wasm32-wasi -o ./hello.wasm \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
@@ -321,14 +321,14 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& printf '%s\n' 'Compiling Zig to native...' \
 	&& zig build-exe ./hello.zig \
 	&& MSGOUT=$(./hello) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Zig to WASI...' \
 	&& zig build-exe -target wasm32-wasi ./hello.zig \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
@@ -343,19 +343,19 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& printf '%s\n' 'Compiling Go to native...' \
 	&& go build -o ./hello ./hello.go \
 	&& MSGOUT=$(./hello) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling Go to WASM...' \
 	&& GOOS=js GOARCH=wasm go build -o ./hello.wasm ./hello.go \
 	&& MSGOUT=$(go_js_wasm_exec ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Go to WASI...' \
 	&& GOOS=wasip1 GOARCH=wasm go build -o ./hello.wasm ./hello.go \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
