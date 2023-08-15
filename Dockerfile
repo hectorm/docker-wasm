@@ -191,23 +191,21 @@ ENV PATH=${WASMER_DIR}/bin:${PATH}
 ENV PATH=${WASMER_DIR}/globals/wapm_packages/.bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
-# Install "cargo wasi" and "cargo wasix"
+# Install some extra tools
 RUN cargo install --root "${RUST_HOME:?}" \
 		cargo-wasi \
 		cargo-wasix \
-	&& rm -rf ~/.cargo/
-RUN cargo wasi --version
-RUN cargo wasix --version
-
-# Install some extra tools
-RUN cargo install --root "${RUST_HOME:?}" \
 		wasm-bindgen-cli \
 		wasm-pack \
 		wasm-snip \
+		wasm-tools \
 	&& rm -rf ~/.cargo/
+RUN command -v cargo-wasi && cargo wasi --version
+RUN command -v cargo-wasix && cargo wasix --version
 RUN command -V wasm-bindgen && wasm-bindgen --version
 RUN command -V wasm-pack && wasm-pack --version
 RUN command -V wasm-snip && wasm-snip --version
+RUN command -V wasm-tools && wasm-tools --version
 
 # Copy scripts
 COPY --chown=wasm:wasm ./scripts/bin/ /usr/local/bin/
