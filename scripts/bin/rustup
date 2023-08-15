@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -eu
+
+if [ ! -e "${CARGO_HOME:?}"/bin/rustup ]; then
+	printf '%s\n' 'Installing rustup...' >&2
+	curl -sSfL --proto '=https' --tlsv1.3 'https://sh.rustup.rs' | sh -s -- -y --no-modify-path --profile minimal
+fi
+
+exec "${CARGO_HOME:?}"/bin/rustup "${@:---help}"

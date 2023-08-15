@@ -20,6 +20,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		gnupg \
 		jq \
 		libarchive-tools \
+		libtoml-tiny-perl \
 		libtool \
 		libtool-bin \
 		locales \
@@ -47,20 +48,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		zstd \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Create wasm user and group
-ARG WASM_USER_UID=1000
-ARG WASM_USER_GID=1000
-RUN groupadd \
-		--gid "${WASM_USER_GID:?}" \
-		wasm
-RUN useradd \
-		--uid "${WASM_USER_UID:?}" \
-		--gid "${WASM_USER_GID:?}" \
-		--shell "$(command -v bash)" \
-		--home-dir /home/wasm/ \
-		--create-home \
-		wasm
-
 # Setup locale
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 RUN printf '%s\n' "${LANG:?} UTF-8" > /etc/locale.gen \
@@ -71,89 +58,75 @@ ENV TZ=UTC
 RUN printf '%s\n' "${TZ:?}" > /etc/timezone \
 	&& ln -snf "/usr/share/zoneinfo/${TZ:?}" /etc/localtime
 
-# Drop root privileges
-USER wasm:wasm
-ENV USER=wasm
-ENV HOME=/home/wasm
-ENV XDG_CONFIG_HOME=${HOME}/.config
-ENV XDG_CACHE_HOME=${HOME}/.cache
-ENV XDG_DATA_HOME=${HOME}/.local/share
-ENV XDG_STATE_HOME=${HOME}/.local/state
-
 # Initialize PATH
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV PATH=${HOME}/.local/bin:${PATH}
 
 # Install Rust
-ENV RUSTUP_HOME=${HOME}/.rustup
-ENV CARGO_HOME=${HOME}/.cargo
-RUN mkdir -p "${RUSTUP_HOME:?}" "${CARGO_HOME:?}"
-RUN URL='https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init' \
-	&& curl -sSfL "${URL:?}" -o "${HOME:?}"/rustup-init \
-	&& chmod 755 "${HOME:?}"/rustup-init \
-	&& "${HOME:?}"/rustup-init -y --no-modify-path \
-	&& rm -f "${HOME:?}"/rustup-init
-ENV PATH=${CARGO_HOME}/bin:${PATH}
-RUN command -V rustup && rustup --version
+ENV RUST_HOME=/opt/rust
+RUN mkdir -p "${RUST_HOME:?}"
+RUN mkdir /tmp/rust/ \
+	&& cd /tmp/rust/ \
+	&& curl -sSfL 'https://static.rust-lang.org/dist/channel-rust-stable.toml' -o ./manifest.toml \
+	&& PARSER='print(from_toml(do{local $/;<STDIN>})->{pkg}{$ARGV[0]}{target}{$ARGV[1]}{xz_url})' \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust'     'x86_64-unknown-linux-gnu'  < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust-std' 'wasm32-wasi'               < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust-std' 'wasm32-unknown-unknown'    < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust-std' 'wasm32-unknown-emscripten' < ./manifest.toml)" | bsdtar -x \
+	&& ./rust-*-x86_64-unknown-linux-gnu/install.sh      --prefix="${RUST_HOME:?}" --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo \
+	&& ./rust-std-*-wasm32-wasi/install.sh               --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-wasi \
+	&& ./rust-std-*-wasm32-unknown-unknown/install.sh    --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-unknown \
+	&& ./rust-std-*-wasm32-unknown-emscripten/install.sh --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-emscripten \
+	&& printf '%s\n' "${RUST_HOME:?}"/lib > /etc/ld.so.conf.d/rustlib.conf && ldconfig \
+	&& rm -rf /tmp/rust/
+ENV PATH=${RUST_HOME}/bin:${PATH}
 RUN command -V rustc && rustc --version
 RUN command -V cargo && cargo --version
-RUN rustup target add wasm32-wasi
-RUN rustup target add wasm32-unknown-unknown
-RUN rustup target add wasm32-unknown-emscripten
-
-# Install Go
-ENV GOROOT=${HOME}/.goroot
-ENV GOPATH=${HOME}/.gopath
-RUN mkdir -p "${GOROOT:?}" "${GOPATH:?}"/bin/ "${GOPATH:?}"/src/
-RUN VERSION=$(curl -sSfL 'https://go.dev/VERSION?m=text' | head -1) \
-	&& URL="https://dl.google.com/go/${VERSION:?}.linux-amd64.tar.gz" \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${GOROOT:?}"
-ENV PATH=${GOROOT}/bin:${PATH}
-ENV PATH=${GOROOT}/misc/wasm:${PATH}
-ENV PATH=${GOPATH}/bin:${PATH}
-RUN command -V go && go version
 
 # Install Zig
-ENV ZIG_PATH=${HOME}/.zig
-RUN mkdir -p "${ZIG_PATH:?}"
+ENV ZIG_HOME=/opt/zig
+RUN mkdir -p "${ZIG_HOME:?}"
 RUN URL=$(curl -sSfL 'https://ziglang.org/download/index.json' \
 		| jq -r 'to_entries | map(select(.key | test("^[0-9]+(\\.[0-9]+)*$"))) | sort_by(.value.date) | .[-1].value["x86_64-linux"].tarball' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${ZIG_PATH:?}" \
-	&& chmod 755 "${ZIG_PATH:?}"
-ENV PATH=${ZIG_PATH}:${PATH}
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${ZIG_HOME:?}"
+ENV PATH=${ZIG_HOME}:${PATH}
 RUN command -V zig && zig version
 
+# Install Go
+ENV GOROOT=/opt/go
+RUN mkdir -p "${GOROOT:?}"
+RUN VERSION=$(curl -sSfL 'https://go.dev/VERSION?m=text' | head -1) \
+	&& URL="https://dl.google.com/go/${VERSION:?}.linux-amd64.tar.gz" \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${GOROOT:?}"
+ENV PATH=${GOROOT}/bin:${PATH}
+ENV PATH=${GOROOT}/misc/wasm:${PATH}
+RUN command -V go && go version
+
 # Install Node.js
-ENV FNM_DIR=${HOME}/.fnm
-RUN mkdir -p "${FNM_DIR:?}"
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/Schniz/fnm/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^fnm-linux\\.zip$")?) | .browser_download_url' \
+ENV NODE_HOME=/opt/node
+RUN mkdir -p "${NODE_HOME:?}"
+RUN VERSION=$(curl -sSfL 'https://nodejs.org/dist/index.json' \
+		| jq -r 'map(select(.lts)) | sort_by(.version | ltrimstr("v") | split(".") | map(tonumber)) | .[-1].version' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x -C "${FNM_DIR:?}" \
-	&& chmod 755 "${FNM_DIR:?}"/fnm
-ENV PATH=${FNM_DIR}:${PATH}
-RUN command -V fnm && fnm --version
-RUN fnm install --lts && fnm default lts-latest
-ENV PATH=${FNM_DIR}/aliases/default/bin:${PATH}
+	&& URL="https://nodejs.org/dist/${VERSION:?}/node-${VERSION:?}-linux-x64.tar.xz" \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${NODE_HOME:?}"
+ENV PATH=${NODE_HOME}/bin:${PATH}
 RUN command -V node && node --version
 RUN command -V npm && npm --version
 
 # Install Emscripten
-ENV EMSDK=${HOME}/.emsdk
-ENV EM_CONFIG=${EMSDK}/.emscripten
-ENV EM_PORTS=${HOME}/.emscripten_ports
-ENV EM_CACHE=${HOME}/.emscripten_cache
-RUN mkdir -p "${EMSDK:?}" "${EM_PORTS:?}" "${EM_CACHE:?}"
+ENV EMSDK=/opt/emsdk
+RUN mkdir -p "${EMSDK:?}"
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/emscripten-core/emsdk/tags' \
 		| jq -r 'sort_by(.name | split(".") | map(tonumber)) | .[-1].tarball_url' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${EMSDK:?}"
-RUN cd "${EMSDK:?}" \
-	&& ./emsdk install latest \
-	&& ./emsdk activate latest \
-	&& rm -rf "${HOME}"/.cache/ "${HOME}"/.npm/
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${EMSDK:?}"
 ENV PATH=${EMSDK}:${PATH}
+RUN cd "${EMSDK:?}" \
+	&& emsdk install latest \
+	&& emsdk activate latest \
+	&& chown root:root -R "${EMSDK:?}" \
+	&& rm -rf ~/.cache/ ~/.npm/
 ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
 ENV PATH=${EMSDK}/upstream/bin:${PATH}
 ENV WASM_OPT=${EMSDK}/upstream/bin/wasm-opt
@@ -169,7 +142,7 @@ RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}"
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases/latest' \
 		| jq -r '.assets[] | select(.name | test("^wasi-sdk-[0-9]+(\\.[0-9]+)*-linux\\.tar\\.gz$")?) | .browser_download_url' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${WASI_SDK_PATH:?}" \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASI_SDK_PATH:?}" \
 		-s "#/lib/clang/[0-9]*/#/lib/clang/$(basename "$(clang --print-resource-dir)")/#" \
 		'./wasi-sdk-*/lib/clang/[0-9]*/' \
 		'./wasi-sdk-*/share/'
@@ -187,7 +160,7 @@ RUN mkdir -p "${WASIX_SYSROOT32:?}" "${WASIX_SYSROOT64:?}"
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/wasix-org/rust/releases/latest' \
 		| jq -r '.assets[] | select(.name | test("^wasix-libc\\.tar\\.gz$")?) | .browser_download_url' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${WASIX_SYSROOT:?}"/../ \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASIX_SYSROOT:?}"/../ \
 		-s '#/wasix-libc/sysroot\(32\|64\)/#/wasix-sysroot\1/#' \
 		'./wasix-libc/sysroot*/'
 RUN test -f "${WASIX_SYSROOT32:?}"/lib/wasm32-wasi/libc.a
@@ -195,48 +168,89 @@ RUN test -f "${WASIX_SYSROOT64:?}"/lib/wasm64-wasi/libc.a
 RUN test -f "${WASIX_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 
 # Install Wasmtime
-ENV WASMTIME_HOME=${HOME}/.wasmtime
+ENV WASMTIME_HOME=/opt/wasmtime
 RUN mkdir -p "${WASMTIME_HOME:?}"/bin/
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest' \
 		| jq -r '.assets[] | select(.name | test("^wasmtime-v[0-9]+(\\.[0-9]+)*-x86_64-linux\\.tar\\.xz$")?) | .browser_download_url' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --strip-components=1 -C "${WASMTIME_HOME:?}" \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMTIME_HOME:?}" \
 	&& mv "${WASMTIME_HOME:?}"/wasmtime "${WASMTIME_HOME:?}"/bin/
 ENV PATH=${WASMTIME_HOME}/bin:${PATH}
 RUN command -V wasmtime && wasmtime --version
 
 # Install Wasmer
-ENV WASMER_DIR=${HOME}/.wasmer
+ENV WASMER_DIR=/opt/wasmer
 ENV WASMER_CACHE_DIR=${WASMER_DIR}/cache
 RUN mkdir -p "${WASMER_DIR:?}" "${WASMER_CACHE_DIR:?}"
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/wasmerio/wasmer/releases/latest' \
 		| jq -r '.assets[] | select(.name | test("^wasmer-linux-amd64\\.tar\\.gz$")?) | .browser_download_url' \
 	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x -C "${WASMER_DIR:?}"
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner -C "${WASMER_DIR:?}"
 ENV PATH=${WASMER_DIR}/bin:${PATH}
 ENV PATH=${WASMER_DIR}/globals/wapm_packages/.bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
 # Install "cargo wasi" and "cargo wasix"
-RUN cargo install cargo-wasi cargo-wasix \
-	&& rm -rf "${CARGO_HOME:?}"/registry/
+RUN cargo install --root "${RUST_HOME:?}" cargo-wasi cargo-wasix \
+	&& rm -rf ~/.cargo/
 RUN cargo wasi --version
 RUN cargo wasix --version
 
 # Install some extra tools
-RUN cargo install wasm-pack wasm-snip \
-	&& rm -rf "${CARGO_HOME:?}"/registry/
+RUN cargo install --root "${RUST_HOME:?}" wasm-pack wasm-snip \
+	&& rm -rf ~/.cargo/
 RUN command -V wasm-pack && wasm-pack --version
 RUN command -V wasm-snip && wasm-snip --version
+
+# Copy scripts
+COPY --chown=wasm:wasm ./scripts/bin/ /usr/local/bin/
+RUN find /usr/local/bin/ -type d -not -perm 0755 -exec chmod 0755 '{}' ';'
+RUN find /usr/local/bin/ -type f -not -perm 0755 -exec chmod 0755 '{}' ';'
+
+# Create wasm user and group
+ARG WASM_USER_UID=1000
+ARG WASM_USER_GID=1000
+RUN groupadd \
+		--gid "${WASM_USER_GID:?}" \
+		wasm
+RUN useradd \
+		--uid "${WASM_USER_UID:?}" \
+		--gid "${WASM_USER_GID:?}" \
+		--shell "$(command -v bash)" \
+		--home-dir /home/wasm/ \
+		--create-home \
+		wasm
+
+# Drop root privileges
+USER wasm:wasm
+
+# Set user environment
+ENV USER=wasm
+ENV HOME=/home/wasm
+ENV XDG_CONFIG_HOME=${HOME}/.config
+ENV XDG_CACHE_HOME=${HOME}/.cache
+ENV XDG_DATA_HOME=${HOME}/.local/share
+ENV XDG_STATE_HOME=${HOME}/.local/state
+ENV XDG_RUNTIME_DIR=${HOME}/.local/run
+ENV PATH=${HOME}/.local/bin:${PATH}
+
+ENV CARGO_HOME=${XDG_DATA_HOME}/cargo
+ENV RUSTUP_HOME=${XDG_DATA_HOME}/rustup
+ENV RUSTUP_INIT_SKIP_PATH_CHECK=yes
+ENV PATH=${CARGO_HOME}/bin:${PATH}
+
+ENV GOPATH=${XDG_DATA_HOME}/go
+ENV PATH=${GOPATH}/bin:${PATH}
+
+ENV NPM_CONFIG_PREFIX=${XDG_DATA_HOME}/npm
+ENV NPM_CONFIG_CACHE=${XDG_CACHE_HOME}/npm
+ENV NPM_CONFIG_USERCONFIG=${XDG_CONFIG_HOME}/npm/npmrc
+ENV NPM_CONFIG_INIT_MODULE=${XDG_CONFIG_HOME}/npm/config/npm-init.js
+ENV PATH=${NPM_CONFIG_PREFIX}/bin:${PATH}
 
 # Pre-build and cache some libraries
 RUN embuilder.py build MINIMAL zlib bzip2
 RUN embuilder.py build MINIMAL_PIC zlib bzip2 --pic
-
-# Copy scripts
-COPY --chown=wasm:wasm ./scripts/bin/ ${HOME}/.local/bin
-RUN find "${HOME:?}"/.local/bin/ -type d -not -perm 0755 -exec chmod 0755 '{}' ';'
-RUN find "${HOME:?}"/.local/bin/ -type f -not -perm 0755 -exec chmod 0755 '{}' ';'
 
 # Build sample C program
 RUN mkdir "${HOME:?}"/test/ \
@@ -292,33 +306,6 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
 
-# Build sample Go program
-RUN mkdir "${HOME:?}"/test/ \
-	&& cd "${HOME:?}"/test/ \
-	# Create program
-	&& MSGIN='Hello, world!' \
-	&& printf '%s\n' 'package main;import "fmt";func main(){fmt.Println("'"${MSGIN:?}"'");}' > ./hello.go \
-	# Compile to native
-	&& printf '%s\n' 'Compiling Go to native...' \
-	&& go build -o ./hello ./hello.go \
-	&& MSGOUT=$(./hello) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
-	# Compile to WASM
-	&& printf '%s\n' 'Compiling Go to WASM...' \
-	&& GOOS=js GOARCH=wasm go build -o ./hello.wasm ./hello.go \
-	&& MSGOUT=$(node "${GOROOT:?}"/misc/wasm/wasm_exec_node.js ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
-	# Compile to WASI
-	&& printf '%s\n' 'Compiling Go to WASI...' \
-	&& GOOS=wasip1 GOARCH=wasm go build -o ./hello.wasm ./hello.go \
-	&& MSGOUT=$(wasmtime run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
-	&& MSGOUT=$(wasmer run ./hello.wasm) \
-	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
-	# Cleanup
-	&& rm -rf "${HOME:?}"/test/ \
-	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
-
 # Build sample Zig program
 RUN mkdir "${HOME:?}"/test/ \
 	&& cd "${HOME:?}"/test/ \
@@ -333,6 +320,33 @@ RUN mkdir "${HOME:?}"/test/ \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Zig to WASI...' \
 	&& zig build-exe -target wasm32-wasi ./hello.zig \
+	&& MSGOUT=$(wasmtime run ./hello.wasm) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	&& MSGOUT=$(wasmer run ./hello.wasm) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	# Cleanup
+	&& rm -rf "${HOME:?}"/test/ \
+	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
+
+# Build sample Go program
+RUN mkdir "${HOME:?}"/test/ \
+	&& cd "${HOME:?}"/test/ \
+	# Create program
+	&& MSGIN='Hello, world!' \
+	&& printf '%s\n' 'package main;import "fmt";func main(){fmt.Println("'"${MSGIN:?}"'");}' > ./hello.go \
+	# Compile to native
+	&& printf '%s\n' 'Compiling Go to native...' \
+	&& go build -o ./hello ./hello.go \
+	&& MSGOUT=$(./hello) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	# Compile to WASM
+	&& printf '%s\n' 'Compiling Go to WASM...' \
+	&& GOOS=js GOARCH=wasm go build -o ./hello.wasm ./hello.go \
+	&& MSGOUT=$(go_js_wasm_exec ./hello.wasm) \
+	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
+	# Compile to WASI
+	&& printf '%s\n' 'Compiling Go to WASI...' \
+	&& GOOS=wasip1 GOARCH=wasm go build -o ./hello.wasm ./hello.go \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
 	&& ([ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1) \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
