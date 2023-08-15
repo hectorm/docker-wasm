@@ -20,6 +20,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		gnupg \
 		jq \
 		libarchive-tools \
+		libssl-dev \
 		libtoml-tiny-perl \
 		libtool \
 		libtool-bin \
@@ -191,14 +192,20 @@ ENV PATH=${WASMER_DIR}/globals/wapm_packages/.bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
 # Install "cargo wasi" and "cargo wasix"
-RUN cargo install --root "${RUST_HOME:?}" cargo-wasi cargo-wasix \
+RUN cargo install --root "${RUST_HOME:?}" \
+		cargo-wasi \
+		cargo-wasix \
 	&& rm -rf ~/.cargo/
 RUN cargo wasi --version
 RUN cargo wasix --version
 
 # Install some extra tools
-RUN cargo install --root "${RUST_HOME:?}" wasm-pack wasm-snip \
+RUN cargo install --root "${RUST_HOME:?}" \
+		wasm-bindgen-cli \
+		wasm-pack \
+		wasm-snip \
 	&& rm -rf ~/.cargo/
+RUN command -V wasm-bindgen && wasm-bindgen --version
 RUN command -V wasm-pack && wasm-pack --version
 RUN command -V wasm-snip && wasm-snip --version
 
