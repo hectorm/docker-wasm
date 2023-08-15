@@ -263,6 +263,9 @@ ENV PATH=${NPM_CONFIG_PREFIX}/bin:${PATH}
 
 ENV WASMER_CACHE_DIR=${XDG_CACHE_HOME}/wasmer
 
+# Create user directories
+RUN mkdir -p "${XDG_CONFIG_HOME:?}" "${XDG_CACHE_HOME:?}" "${XDG_DATA_HOME:?}" "${XDG_STATE_HOME:?}" "${XDG_RUNTIME_DIR:?}"
+
 # Pre-build and cache some libraries
 RUN embuilder.py build MINIMAL zlib bzip2
 RUN embuilder.py build MINIMAL_PIC zlib bzip2 --pic
