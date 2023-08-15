@@ -181,14 +181,12 @@ RUN command -V wasmtime && wasmtime --version
 
 # Install Wasmer
 ENV WASMER_DIR=/opt/wasmer
-ENV WASMER_CACHE_DIR=${WASMER_DIR}/cache
-RUN mkdir -p "${WASMER_DIR:?}" "${WASMER_CACHE_DIR:?}"
+RUN mkdir -p "${WASMER_DIR:?}"
 RUN URL=$(curl -sSfL 'https://api.github.com/repos/wasmerio/wasmer/releases/latest' \
 		| jq -r '.assets[] | select(.name | test("^wasmer-linux-amd64\\.tar\\.gz$")?) | .browser_download_url' \
 	) \
 	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner -C "${WASMER_DIR:?}"
 ENV PATH=${WASMER_DIR}/bin:${PATH}
-ENV PATH=${WASMER_DIR}/globals/wapm_packages/.bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
 # Install some extra tools
@@ -253,6 +251,8 @@ ENV NPM_CONFIG_USERCONFIG=${XDG_CONFIG_HOME}/npm/npmrc
 ENV NPM_CONFIG_INIT_MODULE=${XDG_CONFIG_HOME}/npm/config/npm-init.js
 ENV PATH=${NPM_CONFIG_PREFIX}/bin:${PATH}
 
+ENV WASMER_CACHE_DIR=${XDG_CACHE_HOME}/wasmer
+
 # Pre-build and cache some libraries
 RUN embuilder.py build MINIMAL zlib bzip2
 RUN embuilder.py build MINIMAL_PIC zlib bzip2 --pic
@@ -282,7 +282,7 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
-	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
+	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
 
 # Build sample Rust program
 RUN mkdir "${HOME:?}"/test/ \
@@ -309,7 +309,7 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
-	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
+	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
 
 # Build sample Zig program
 RUN mkdir "${HOME:?}"/test/ \
@@ -331,7 +331,7 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
-	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
+	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
 
 # Build sample Go program
 RUN mkdir "${HOME:?}"/test/ \
@@ -358,7 +358,7 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
-	&& find "${XDG_CACHE_HOME:?}" "${WASMER_CACHE_DIR:?}" -mindepth 1 -delete
+	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
 
 WORKDIR ${HOME}
 CMD ["/bin/bash"]
