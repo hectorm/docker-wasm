@@ -9,4 +9,4 @@ Developer playground for [WebAssembly](https://webassembly.org) with the latest 
 [WASI SDK](https://github.com/WebAssembly/wasi-sdk),
 [Wasmtime](https://wasmtime.dev),
 [Wasmer](https://wasmer.io) and
-[WasmEdge](https://wasmedge.org/).
+[WasmEdge](https://wasmedge.org).
