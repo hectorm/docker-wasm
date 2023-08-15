@@ -189,6 +189,16 @@ RUN URL=$(curl -sSfL 'https://api.github.com/repos/wasmerio/wasmer/releases/late
 ENV PATH=${WASMER_DIR}/bin:${PATH}
 RUN command -V wasmer && wasmer --version
 
+# Install WasmEdge
+ENV WASMEDGE_DIR=/opt/wasmedge
+RUN mkdir -p "${WASMEDGE_DIR:?}"
+RUN URL=$(curl -sSfL 'https://api.github.com/repos/WasmEdge/WasmEdge/releases/latest' \
+		| jq -r '.assets[] | select(.name | test("^WasmEdge-[0-9]+(\\.[0-9]+)*-manylinux2014_x86_64.tar.xz$")?) | .browser_download_url' \
+	) \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMEDGE_DIR:?}"
+ENV PATH=${WASMEDGE_DIR}/bin:${PATH}
+RUN command -V wasmedge && wasmedge --version
+
 # Install some extra tools
 RUN cargo install --root "${RUST_HOME:?}" \
 		cargo-wasi \
@@ -280,6 +290,8 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wasmedge ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
@@ -307,6 +319,8 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wasmedge ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
@@ -328,6 +342,8 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wasmedge ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
@@ -355,6 +371,8 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& MSGOUT=$(GOWASIRUNTIME=wasmtime go_wasip1_wasm_exec ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(GOWASIRUNTIME=wasmer go_wasip1_wasm_exec ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(GOWASIRUNTIME=wasmedge go_wasip1_wasm_exec ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
