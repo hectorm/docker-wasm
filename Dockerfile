@@ -32,6 +32,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		mime-support \
 		nano \
 		ninja-build \
+		patch \
 		perl \
 		pkgconf \
 		python-dev-is-python3 \
