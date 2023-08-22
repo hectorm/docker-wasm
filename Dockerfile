@@ -268,8 +268,15 @@ ENV WASMER_CACHE_DIR=${XDG_CACHE_HOME}/wasmer
 RUN mkdir -p "${XDG_CONFIG_HOME:?}" "${XDG_CACHE_HOME:?}" "${XDG_DATA_HOME:?}" "${XDG_STATE_HOME:?}" "${XDG_RUNTIME_DIR:?}"
 
 # Pre-build and cache some libraries
-RUN embuilder.py build MINIMAL zlib bzip2
-RUN embuilder.py build MINIMAL_PIC zlib bzip2 --pic
+RUN EM_CACHE="$(em-config CACHE)" \
+	&& embuilder build MINIMAL \
+	&& embuilder build MINIMAL --lto \
+	&& embuilder build MINIMAL --lto=thin \
+	&& embuilder build MINIMAL_PIC --pic \
+	&& embuilder build MINIMAL_PIC --pic --lto \
+	&& embuilder build MINIMAL_PIC --pic --lto=thin \
+	&& find "${EM_CACHE:?}"/ports/ -maxdepth 1 -type f -delete \
+	&& find "${EM_CACHE:?}"/ports-builds/ -mindepth 1 -delete
 
 # Build sample C program
 RUN mkdir "${HOME:?}"/test/ \
