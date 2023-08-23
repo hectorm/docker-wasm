@@ -307,6 +307,11 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmedge ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	# Compile to WASIX
+	&& printf '%s\n' 'Compiling C to WASIX...' \
+	&& WASI_SYSROOT="${WASIX_SYSROOT:?}" wasicc ./hello.c -o ./hello.wasm \
+	&& MSGOUT=$(wasmer run ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
