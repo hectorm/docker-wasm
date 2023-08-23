@@ -11,11 +11,15 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		autoconf \
 		automake \
 		bash \
+		bison \
 		bzip2 \
 		ca-certificates \
 		cmake \
 		curl \
+		default-jre-headless \
 		file \
+		flex \
+		gettext \
 		git \
 		gnupg \
 		jq \
