@@ -295,7 +295,7 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling C to WASM...' \
-	&& emcc ./hello.c -o ./hello.js \
+	&& emcc ./hello.c -o ./hello.js -O2 --closure 1 \
 	&& MSGOUT=$(node ./hello.js) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
