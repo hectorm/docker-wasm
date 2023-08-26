@@ -7,7 +7,8 @@ Developer playground for [WebAssembly](https://webassembly.org) with the latest 
 [TinyGo](https://tinygo.org),
 [Node.js](https://nodejs.org),
 [Emscripten](https://emscripten.org),
-[WASI SDK](https://github.com/WebAssembly/wasi-sdk),
+[WASI SDK](https://wasi.dev),
+[WASIX libc](https://wasix.org),
 [Wasmtime](https://wasmtime.dev),
 [Wasmer](https://wasmer.io) and
 [WasmEdge](https://wasmedge.org).
