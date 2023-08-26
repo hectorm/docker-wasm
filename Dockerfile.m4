@@ -113,6 +113,17 @@ RUN case "$(uname -m)" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; esac \
 	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${GOROOT:?}"
 RUN command -V go && go version
 
+# Install TinyGo
+ENV TINYGOROOT=/opt/tinygo
+ENV PATH=${TINYGOROOT}/bin:${PATH}
+RUN mkdir -p "${TINYGOROOT:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; esac \
+	&& PARSER='.assets[] | select(.name | test("^tinygo[0-9]+(\\.[0-9]+)*\\.linux-" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& URL=$(curl -sSfL 'https://api.github.com/repos/tinygo-org/tinygo/releases/latest' | jq -r --arg a "${ARCH:?}" "${PARSER:?}") \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${TINYGOROOT:?}" \
+	&& rm -rf "${TINYGOROOT:?}"/bin/wasm-opt
+RUN command -V tinygo && tinygo version
+
 # Install Node.js
 ENV NODE_HOME=/opt/node
 ENV PATH=${NODE_HOME}/bin:${PATH}
@@ -399,10 +410,18 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& go build -o ./hello ./hello.go \
 	&& MSGOUT=$(./hello) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& printf '%s\n' 'Compiling TinyGo to native...' \
+	&& tinygo build -o ./hello ./hello.go \
+	&& MSGOUT=$(./hello) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling Go to WASM...' \
 	&& GOOS=js GOARCH=wasm go build -o ./hello.wasm ./hello.go \
 	&& MSGOUT=$(go_js_wasm_exec ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& printf '%s\n' 'Compiling TinyGo to WASM...' \
+	&& tinygo build -o ./hello.wasm -target wasm ./hello.go \
+	&& MSGOUT=$(node "${TINYGOROOT:?}"/targets/wasm_exec.js ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Go to WASI...' \
@@ -412,6 +431,14 @@ RUN mkdir "${HOME:?}"/test/ \
 	&& MSGOUT=$(GOWASIRUNTIME=wasmer go_wasip1_wasm_exec ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(GOWASIRUNTIME=wasmedge go_wasip1_wasm_exec ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& printf '%s\n' 'Compiling TinyGo to WASI...' \
+	&& tinygo build -o ./hello.wasm -target wasi ./hello.go \
+	&& MSGOUT=$(wasmtime run ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wasmer run ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wasmedge ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
