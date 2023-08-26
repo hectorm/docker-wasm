@@ -1,8 +1,11 @@
+m4_changequote([[, ]])
+
 ##################################################
 ## "main" stage
 ##################################################
 
-FROM docker.io/debian:sid-slim AS main
+m4_ifdef([[CROSS_ARCH]], [[FROM docker.io/CROSS_ARCH/debian:sid-slim]], [[FROM docker.io/debian:sid-slim]]) AS main
+m4_ifdef([[CROSS_QEMU]], [[COPY --from=docker.io/hectorm/qemu-user-static:latest CROSS_QEMU CROSS_QEMU]])
 
 # Install system packages
 RUN export DEBIAN_FRONTEND=noninteractive \
@@ -36,6 +39,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		mime-support \
 		nano \
 		ninja-build \
+		parallel \
 		patch \
 		perl \
 		pkgconf \
@@ -69,73 +73,74 @@ ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Install Rust
 ENV RUST_HOME=/opt/rust
+ENV PATH=${RUST_HOME}/bin:${PATH}
 RUN mkdir -p "${RUST_HOME:?}"
-RUN mkdir /tmp/rust/ \
-	&& cd /tmp/rust/ \
+RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
+	&& mkdir /tmp/rust/ && cd /tmp/rust/ \
 	&& curl -sSfL 'https://static.rust-lang.org/dist/channel-rust-stable.toml' -o ./manifest.toml \
 	&& PARSER='print(from_toml(do{local $/;<STDIN>})->{pkg}{$ARGV[0]}{target}{$ARGV[1]}{xz_url})' \
-	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust'     'x86_64-unknown-linux-gnu'  < ./manifest.toml)" | bsdtar -x \
-	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust-std' 'wasm32-wasi'               < ./manifest.toml)" | bsdtar -x \
-	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust-std' 'wasm32-unknown-unknown'    < ./manifest.toml)" | bsdtar -x \
-	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" 'rust-std' 'wasm32-unknown-emscripten' < ./manifest.toml)" | bsdtar -x \
-	&& ./rust-*-x86_64-unknown-linux-gnu/install.sh      --prefix="${RUST_HOME:?}" --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" rust     "${ARCH:?}"-unknown-linux-gnu < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" rust-std wasm32-wasi                   < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" rust-std wasm32-unknown-unknown        < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PARSER:?}" rust-std wasm32-unknown-emscripten     < ./manifest.toml)" | bsdtar -x \
+	&& ./rust-*-"${ARCH:?}"-unknown-linux-gnu/install.sh --prefix="${RUST_HOME:?}" --components=rustc,rust-std-"${ARCH:?}"-unknown-linux-gnu,cargo \
 	&& ./rust-std-*-wasm32-wasi/install.sh               --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-wasi \
 	&& ./rust-std-*-wasm32-unknown-unknown/install.sh    --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-unknown \
 	&& ./rust-std-*-wasm32-unknown-emscripten/install.sh --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-emscripten \
 	&& printf '%s\n' "${RUST_HOME:?}"/lib > /etc/ld.so.conf.d/rustlib.conf && ldconfig \
 	&& rm -rf /tmp/rust/
-ENV PATH=${RUST_HOME}/bin:${PATH}
 RUN command -V rustc && rustc --version
 RUN command -V cargo && cargo --version
 
 # Install Zig
 ENV ZIG_HOME=/opt/zig
-RUN mkdir -p "${ZIG_HOME:?}"
-RUN URL=$(curl -sSfL 'https://ziglang.org/download/index.json' \
-		| jq -r 'to_entries | map(select(.key | test("^[0-9]+(\\.[0-9]+)*$"))) | sort_by(.value.date) | .[-1].value["x86_64-linux"].tarball' \
-	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${ZIG_HOME:?}"
 ENV PATH=${ZIG_HOME}:${PATH}
+RUN mkdir -p "${ZIG_HOME:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
+	&& PARSER='to_entries | map(select(.key | test("^[0-9]+(\\.[0-9]+)*$"))) | sort_by(.value.date) | .[-1].value[$a + "-linux"].tarball' \
+	&& URL=$(curl -sSfL 'https://ziglang.org/download/index.json' | jq -r --arg a "${ARCH:?}" "${PARSER:?}") \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${ZIG_HOME:?}"
 RUN command -V zig && zig version
 
 # Install Go
 ENV GOROOT=/opt/go
-RUN mkdir -p "${GOROOT:?}"
-RUN VERSION=$(curl -sSfL 'https://go.dev/VERSION?m=text' | head -1) \
-	&& URL="https://dl.google.com/go/${VERSION:?}.linux-amd64.tar.gz" \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${GOROOT:?}"
 ENV PATH=${GOROOT}/bin:${PATH}
 ENV PATH=${GOROOT}/misc/wasm:${PATH}
+RUN mkdir -p "${GOROOT:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; esac \
+	&& VERSION=$(curl -sSfL 'https://go.dev/VERSION?m=text' | head -1) \
+	&& URL="https://dl.google.com/go/${VERSION:?}.linux-${ARCH:?}.tar.gz" \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${GOROOT:?}"
 RUN command -V go && go version
 
 # Install Node.js
 ENV NODE_HOME=/opt/node
-RUN mkdir -p "${NODE_HOME:?}"
-RUN VERSION=$(curl -sSfL 'https://nodejs.org/dist/index.json' \
-		| jq -r 'map(select(.lts)) | sort_by(.version | ltrimstr("v") | split(".") | map(tonumber)) | .[-1].version' \
-	) \
-	&& URL="https://nodejs.org/dist/${VERSION:?}/node-${VERSION:?}-linux-x64.tar.xz" \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${NODE_HOME:?}"
 ENV PATH=${NODE_HOME}/bin:${PATH}
+RUN mkdir -p "${NODE_HOME:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=x64 ;; aarch64) ARCH=arm64 ;; esac \
+	&& PARSER='map(select(.lts)) | sort_by(.version | ltrimstr("v") | split(".") | map(tonumber)) | .[-1].version' \
+	&& VERSION=$(curl -sSfL 'https://nodejs.org/dist/index.json' | jq -r "${PARSER:?}") \
+	&& URL="https://nodejs.org/dist/${VERSION:?}/node-${VERSION:?}-linux-${ARCH:?}.tar.xz" \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${NODE_HOME:?}"
 RUN command -V node && node --version
 RUN command -V npm && npm --version
 
 # Install Emscripten
 ENV EMSDK=/opt/emsdk
-RUN mkdir -p "${EMSDK:?}"
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/emscripten-core/emsdk/tags' \
-		| jq -r 'sort_by(.name | split(".") | map(tonumber)) | .[-1].tarball_url' \
-	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${EMSDK:?}"
+ENV WASM_OPT=${EMSDK}/upstream/bin/wasm-opt
 ENV PATH=${EMSDK}:${PATH}
+ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
+ENV PATH=${EMSDK}/upstream/bin:${PATH}
+RUN mkdir -p "${EMSDK:?}"
+RUN PARSER='sort_by(.name | split(".") | map(tonumber)) | .[-1].tarball_url' \
+	&& URL=$(curl -sSfL 'https://api.github.com/repos/emscripten-core/emsdk/tags' | jq -r "${PARSER:?}") \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${EMSDK:?}"
 RUN cd "${EMSDK:?}" \
 	&& emsdk install latest \
 	&& emsdk activate latest \
+	&& embuilder clear ALL \
 	&& chown root:root -R "${EMSDK:?}" \
 	&& rm -rf ~/.cache/ ~/.npm/
-ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
-ENV PATH=${EMSDK}/upstream/bin:${PATH}
-ENV WASM_OPT=${EMSDK}/upstream/bin/wasm-opt
 RUN command -V emcc && emcc --version
 RUN command -V em++ && em++ --version
 RUN command -V clang && clang --version
@@ -145,9 +150,8 @@ RUN "${WASM_OPT:?}" --version
 ENV WASI_SDK_PATH=${EMSDK}/upstream
 ENV WASI_SYSROOT=${WASI_SDK_PATH}/share/wasi-sysroot
 RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}"
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^wasi-sdk-[0-9]+(\\.[0-9]+)*-linux\\.tar\\.gz$")?) | .browser_download_url' \
-	) \
+RUN PARSER='.assets[] | select(.name | test("^wasi-sdk-[0-9]+(\\.[0-9]+)*-linux\\.tar\\.gz$")?) | .browser_download_url' \
+	&& URL=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases/latest' | jq -r "${PARSER:?}") \
 	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASI_SDK_PATH:?}" \
 		-s "#/lib/clang/[0-9]*/#/lib/clang/$(basename "$(clang --print-resource-dir)")/#" \
 		'./wasi-sdk-*/lib/clang/[0-9]*/lib/wasi/' \
@@ -163,9 +167,8 @@ ENV WASIX_SYSROOT32=${EMSDK}/upstream/share/wasix-sysroot32
 ENV WASIX_SYSROOT64=${EMSDK}/upstream/share/wasix-sysroot64
 ENV WASIX_SYSROOT=${WASIX_SYSROOT32}
 RUN mkdir -p "${WASIX_SYSROOT32:?}" "${WASIX_SYSROOT64:?}"
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/wasix-org/rust/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^wasix-libc\\.tar\\.gz$")?) | .browser_download_url' \
-	) \
+RUN PARSER='.assets[] | select(.name | test("^wasix-libc\\.tar\\.gz$")?) | .browser_download_url' \
+	&& URL=$(curl -sSfL 'https://api.github.com/repos/wasix-org/rust/releases/latest' | jq -r "${PARSER:?}") \
 	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASIX_SYSROOT:?}"/../ \
 		-s '#/wasix-libc/sysroot\(32\|64\)/#/wasix-sysroot\1/#' \
 		'./wasix-libc/sysroot*/'
@@ -175,33 +178,42 @@ RUN test -f "${WASIX_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 
 # Install Wasmtime
 ENV WASMTIME_HOME=/opt/wasmtime
-RUN mkdir -p "${WASMTIME_HOME:?}"/bin/
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^wasmtime-v[0-9]+(\\.[0-9]+)*-x86_64-linux\\.tar\\.xz$")?) | .browser_download_url' \
-	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMTIME_HOME:?}" \
-	&& mv "${WASMTIME_HOME:?}"/wasmtime "${WASMTIME_HOME:?}"/bin/
 ENV PATH=${WASMTIME_HOME}/bin:${PATH}
+RUN mkdir -p "${WASMTIME_HOME:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
+	&& PARSER_BIN='.assets[] | select(.name | test("^wasmtime-v[0-9]+(\\.[0-9]+)*-" + $a + "-linux\\.tar\\.xz$")?) | .browser_download_url' \
+	&& URL_BIN=$(curl -sSfL 'https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest' | jq -r --arg a "${ARCH:?}" "${PARSER_BIN:?}") \
+	&& curl -sSfL "${URL_BIN:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMTIME_HOME:?}" \
+	&& mkdir "${WASMTIME_HOME:?}"/bin/ && mv "${WASMTIME_HOME:?}"/wasmtime "${WASMTIME_HOME:?}"/bin/ \
+	&& PARSER_LIB='.assets[] | select(.name | test("^wasmtime-v[0-9]+(\\.[0-9]+)*-" + $a + "-linux-c-api\\.tar\\.xz$")?) | .browser_download_url' \
+	&& URL_LIB=$(curl -sSfL 'https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest' | jq -r --arg a "${ARCH:?}" "${PARSER_LIB:?}") \
+	&& curl -sSfL "${URL_LIB:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMTIME_HOME:?}" \
+	&& printf '%s\n' "${WASMTIME_HOME:?}"/lib > /etc/ld.so.conf.d/wasmtime.conf && ldconfig
+RUN test -f "${WASMTIME_HOME:?}"/lib/libwasmtime.so
 RUN command -V wasmtime && wasmtime --version
 
 # Install Wasmer
 ENV WASMER_DIR=/opt/wasmer
-RUN mkdir -p "${WASMER_DIR:?}"
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/wasmerio/wasmer/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^wasmer-linux-amd64\\.tar\\.gz$")?) | .browser_download_url' \
-	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner -C "${WASMER_DIR:?}"
 ENV PATH=${WASMER_DIR}/bin:${PATH}
+RUN mkdir -p "${WASMER_DIR:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=amd64 ;; aarch64) ARCH=aarch64 ;; esac \
+	&& PARSER='.assets[] | select(.name | test("^wasmer-linux-" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& URL=$(curl -sSfL 'https://api.github.com/repos/wasmerio/wasmer/releases/latest' | jq -r --arg a "${ARCH:?}" "${PARSER:?}") \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner -C "${WASMER_DIR:?}" \
+	&& printf '%s\n' "${WASMER_DIR:?}"/lib > /etc/ld.so.conf.d/wasmer.conf && ldconfig
+RUN test -f "${WASMER_DIR:?}"/lib/libwasmer.so
 RUN command -V wasmer && wasmer --version
 
 # Install WasmEdge
 ENV WASMEDGE_DIR=/opt/wasmedge
-RUN mkdir -p "${WASMEDGE_DIR:?}"
-RUN URL=$(curl -sSfL 'https://api.github.com/repos/WasmEdge/WasmEdge/releases/latest' \
-		| jq -r '.assets[] | select(.name | test("^WasmEdge-[0-9]+(\\.[0-9]+)*-manylinux2014_x86_64.tar.xz$")?) | .browser_download_url' \
-	) \
-	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMEDGE_DIR:?}"
 ENV PATH=${WASMEDGE_DIR}/bin:${PATH}
+RUN mkdir -p "${WASMEDGE_DIR:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
+	&& PARSER='.assets[] | select(.name | test("^WasmEdge-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.xz$")?) | .browser_download_url' \
+	&& URL=$(curl -sSfL 'https://api.github.com/repos/WasmEdge/WasmEdge/releases/latest' | jq -r --arg a "${ARCH:?}" "${PARSER:?}") \
+	&& curl -sSfL "${URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMEDGE_DIR:?}" \
+	&& printf '%s\n' "${WASMEDGE_DIR:?}"/lib64 > /etc/ld.so.conf.d/wasmedge.conf && ldconfig
+RUN test -f "${WASMEDGE_DIR:?}"/lib64/libwasmedge.so
 RUN command -V wasmedge && wasmedge --version
 
 # Install some extra tools
@@ -271,17 +283,18 @@ ENV WASMER_CACHE_DIR=${XDG_CACHE_HOME}/wasmer
 # Create user directories
 RUN mkdir -p "${XDG_CONFIG_HOME:?}" "${XDG_CACHE_HOME:?}" "${XDG_DATA_HOME:?}" "${XDG_STATE_HOME:?}" "${XDG_RUNTIME_DIR:?}"
 
-# Pre-build and cache some libraries
+m4_ifdef([[SKIP_BUILD_EM_TARGETS]],, [[
+# Precompile some targets to speed up further builds
 RUN EM_CACHE="$(em-config CACHE)" \
-	&& embuilder build MINIMAL \
-	&& embuilder build MINIMAL --lto \
-	&& embuilder build MINIMAL --lto=thin \
-	&& embuilder build MINIMAL_PIC --pic \
-	&& embuilder build MINIMAL_PIC --pic --lto \
-	&& embuilder build MINIMAL_PIC --pic --lto=thin \
+	&& parallel --halt now,fail=1 --lb embuilder build '{=uq=}' \
+		::: 'MINIMAL' 'MINIMAL_PIC --pic' \
+		::: '' '--lto' '--lto=thin' \
+	&& rm -rf ~/.parallel/ \
 	&& find "${EM_CACHE:?}"/ports/ -maxdepth 1 -type f -delete \
 	&& find "${EM_CACHE:?}"/ports-builds/ -mindepth 1 -delete
+]])
 
+m4_ifdef([[SKIP_BUILD_CODE_SAMPLES]],, [[
 # Build sample C program
 RUN mkdir "${HOME:?}"/test/ \
 	&& cd "${HOME:?}"/test/ \
@@ -315,7 +328,9 @@ RUN mkdir "${HOME:?}"/test/ \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
+]])
 
+m4_ifdef([[SKIP_BUILD_CODE_SAMPLES]],, [[
 # Build sample Rust program
 RUN mkdir "${HOME:?}"/test/ \
 	&& cd "${HOME:?}"/test/ \
@@ -344,7 +359,9 @@ RUN mkdir "${HOME:?}"/test/ \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
+]])
 
+m4_ifdef([[SKIP_BUILD_CODE_SAMPLES]],, [[
 # Build sample Zig program
 RUN mkdir "${HOME:?}"/test/ \
 	&& cd "${HOME:?}"/test/ \
@@ -368,7 +385,9 @@ RUN mkdir "${HOME:?}"/test/ \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
+]])
 
+m4_ifdef([[SKIP_BUILD_CODE_SAMPLES]],, [[
 # Build sample Go program
 RUN mkdir "${HOME:?}"/test/ \
 	&& cd "${HOME:?}"/test/ \
@@ -397,6 +416,7 @@ RUN mkdir "${HOME:?}"/test/ \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/ \
 	&& find "${XDG_CACHE_HOME:?}" -mindepth 1 -delete
+]])
 
 WORKDIR ${HOME}
 CMD ["/bin/bash"]
