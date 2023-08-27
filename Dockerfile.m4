@@ -247,14 +247,12 @@ RUN command -V wasmedge && wasmedge --version
 
 # Install some extra tools
 RUN cargo install --root "${RUST_HOME:?}" \
-		cargo-wasi \
 		cargo-wasix \
 		wasm-bindgen-cli \
 		wasm-pack \
 		wasm-snip \
 		wasm-tools \
 	&& rm -rf ~/.cargo/
-RUN command -v cargo-wasi && cargo wasi --version
 RUN command -v cargo-wasix && cargo wasix --version
 RUN command -V wasm-bindgen && wasm-bindgen --version
 RUN command -V wasm-pack && wasm-pack --version
