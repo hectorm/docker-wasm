@@ -239,7 +239,7 @@ RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
 	&& curl -sSfL "${PLUGIN_WASI_CRYPTO_URL:?}" | bsdtar -x --no-same-owner -C "${WASMEDGE_PLUGIN_PATH:?}" \
 	&& printf '%s\n' "${WASMEDGE_DIR:?}"/lib > /etc/ld.so.conf.d/wasmedge.conf && ldconfig
 RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedge.so
-RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedgePluginWasiCrypto.so
+RUN test -f "${WASMEDGE_PLUGIN_PATH:?}"/libwasmedgePluginWasiCrypto.so
 RUN command -V wasmedge && wasmedge --version
 
 # Install some extra tools
