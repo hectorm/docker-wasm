@@ -2,9 +2,19 @@
 
 set -eu
 
-if [ ! -e "${CARGO_HOME:?}"/bin/rustup ]; then
+: "${RUSTUP_BIN="${CARGO_HOME:?}"/bin/rustup}"
+: "${RUSTUP_INIT_BIN="${RUST_HOME:?}"/bin/rustup-init}"
+
+if [ ! -e "${RUSTUP_BIN:?}" ] && [ -e "${RUSTUP_INIT_BIN:?}" ]; then
+	if [ -n "${RUSTUP_NO_AUTO_INSTALL-}" ]; then
+		printf '%s\n' 'rustup not found and RUSTUP_NO_AUTO_INSTALL is set' >&2
+		exit 127
+	fi
+
 	printf '%s\n' 'Installing rustup...' >&2
-	curl -sSfL --proto '=https' --tlsv1.3 'https://sh.rustup.rs' | sh -s -- -y --no-modify-path --profile minimal
+	"${RUSTUP_INIT_BIN:?}" -y --no-update-default-toolchain --no-modify-path
+	"${RUSTUP_BIN:?}" toolchain link system "${RUST_HOME:?}"
+	"${RUSTUP_BIN:?}" default system
 fi
 
-exec "${CARGO_HOME:?}"/bin/rustup "${@:---help}"
+exec "${RUSTUP_BIN:?}" "${@}"

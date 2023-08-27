@@ -88,9 +88,12 @@ RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
 	&& ./rust-std-*-wasm32-unknown-unknown/install.sh    --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-unknown \
 	&& ./rust-std-*-wasm32-unknown-emscripten/install.sh --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-emscripten \
 	&& printf '%s\n' "${RUST_HOME:?}"/lib > /etc/ld.so.conf.d/rustlib.conf && ldconfig \
+	&& curl -sSfL "https://static.rust-lang.org/rustup/dist/${ARCH:?}-unknown-linux-gnu/rustup-init" -o "${RUST_HOME:?}"/bin/rustup-init \
+	&& chmod 0755 "${RUST_HOME:?}"/bin/rustup-init \
 	&& rm -rf /tmp/rust/
 RUN command -V rustc && rustc --version
 RUN command -V cargo && cargo --version
+RUN command -V rustup-init && rustup-init --version
 
 # Install Zig
 ENV ZIG_HOME=/opt/zig
