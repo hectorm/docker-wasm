@@ -83,7 +83,7 @@ RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
 	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-wasi                   < ./manifest.toml)" | bsdtar -x --no-same-owner \
 	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-unknown-unknown        < ./manifest.toml)" | bsdtar -x --no-same-owner \
 	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-unknown-emscripten     < ./manifest.toml)" | bsdtar -x --no-same-owner \
-	&& ./rust-*-"${ARCH:?}"-unknown-linux-gnu/install.sh --prefix="${RUST_HOME:?}" --components=rustc,rust-std-"${ARCH:?}"-unknown-linux-gnu,cargo \
+	&& ./rust-*-"${ARCH:?}"-unknown-linux-gnu/install.sh --prefix="${RUST_HOME:?}" --components=rustc,rust-std-"${ARCH:?}"-unknown-linux-gnu,cargo,rustfmt-preview,clippy-preview \
 	&& ./rust-std-*-wasm32-wasi/install.sh               --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-wasi \
 	&& ./rust-std-*-wasm32-unknown-unknown/install.sh    --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-unknown \
 	&& ./rust-std-*-wasm32-unknown-emscripten/install.sh --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-emscripten \
