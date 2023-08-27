@@ -225,6 +225,7 @@ RUN command -V wasmer && wasmer --version
 
 # Install WasmEdge
 ENV WASMEDGE_DIR=/opt/wasmedge
+ENV WASMEDGE_PLUGIN_PATH=${WASMEDGE_DIR}/lib
 ENV PATH=${WASMEDGE_DIR}/bin:${PATH}
 RUN mkdir -p "${WASMEDGE_DIR:?}"
 RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
@@ -232,8 +233,13 @@ RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
 	&& PKG_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
 	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASMEDGE_DIR:?}" \
-	&& printf '%s\n' "${WASMEDGE_DIR:?}"/lib64 > /etc/ld.so.conf.d/wasmedge.conf && ldconfig
-RUN test -f "${WASMEDGE_DIR:?}"/lib64/libwasmedge.so
+	&& mv "${WASMEDGE_DIR:?}"/lib64/ "${WASMEDGE_DIR:?}"/lib/ \
+	&& PLUGIN_WASI_CRYPTO_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-plugin-wasi_crypto-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& PLUGIN_WASI_CRYPTO_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PLUGIN_WASI_CRYPTO_URL_PARSER:?}") \
+	&& curl -sSfL "${PLUGIN_WASI_CRYPTO_URL:?}" | bsdtar -x --no-same-owner -C "${WASMEDGE_PLUGIN_PATH:?}" \
+	&& printf '%s\n' "${WASMEDGE_DIR:?}"/lib > /etc/ld.so.conf.d/wasmedge.conf && ldconfig
+RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedge.so
+RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedgePluginWasiCrypto.so
 RUN command -V wasmedge && wasmedge --version
 
 # Install some extra tools
