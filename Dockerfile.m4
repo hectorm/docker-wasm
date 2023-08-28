@@ -51,6 +51,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		python3-pip \
 		python3-venv \
 		rsync \
+		sudo \
 		tzdata \
 		unzip \
 		wget \
@@ -306,6 +307,9 @@ RUN useradd \
 		--home-dir /home/wasm/ \
 		--create-home \
 		wasm
+
+# Allow members of group root to execute any command
+RUN printf '%s\n' '%root ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopasswd
 
 # Drop root privileges
 USER wasm:wasm
