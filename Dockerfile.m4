@@ -15,6 +15,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		automake \
 		bash \
 		bison \
+		build-essential \
 		bzip2 \
 		ca-certificates \
 		cmake \
