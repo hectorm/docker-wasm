@@ -246,19 +246,47 @@ RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedge.so
 RUN test -f "${WASMEDGE_PLUGIN_PATH:?}"/libwasmedgePluginWasiCrypto.so
 RUN command -V wasmedge && wasmedge --version
 
-# Install some extra tools
-RUN cargo install --root "${RUST_HOME:?}" \
-		cargo-wasix \
-		wasm-bindgen-cli \
-		wasm-pack \
-		wasm-snip \
-		wasm-tools \
-	&& rm -rf ~/.cargo/
-RUN command -v cargo-wasix && cargo wasix --version
-RUN command -V wasm-bindgen && wasm-bindgen --version
-RUN command -V wasm-pack && wasm-pack --version
-RUN command -V wasm-snip && wasm-snip --version
+# Install wasm-tools
+ENV WASM_TOOLS_DIR=/opt/wasm-tools
+ENV PATH=${WASM_TOOLS_DIR}/bin:${PATH}
+RUN mkdir -p "${WASM_TOOLS_DIR:?}"
+RUN case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
+	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/bytecodealliance/wasm-tools/releases/latest') \
+	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasm-tools-[0-9]+(\\.[0-9]+)*-" + $a + "-linux\\.tar\\.gz$")?) | .browser_download_url' \
+	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
+	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASM_TOOLS_DIR:?}" \
+	&& mkdir "${WASM_TOOLS_DIR:?}"/bin/ && mv "${WASM_TOOLS_DIR:?}"/wasm-tools "${WASM_TOOLS_DIR:?}"/bin/
 RUN command -V wasm-tools && wasm-tools --version
+
+# Install wasm-bindgen
+ENV WASM_BINDGEN_DIR=/opt/wasm-bindgen
+ENV PATH=${WASM_BINDGEN_DIR}/bin:${PATH}
+RUN mkdir -p "${WASM_BINDGEN_DIR:?}"
+RUN case "$(uname -m)" in x86_64) TARGET=x86_64-unknown-linux-musl ;; aarch64) TARGET=aarch64-unknown-linux-gnu ;; esac \
+	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/rustwasm/wasm-bindgen/releases/latest') \
+	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasm-bindgen-[0-9]+(\\.[0-9]+)*-" + $t + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg t "${TARGET:?}" "${PKG_URL_PARSER:?}") \
+	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASM_BINDGEN_DIR:?}" \
+	&& mkdir "${WASM_BINDGEN_DIR:?}"/bin/ && mv "${WASM_BINDGEN_DIR:?}"/wasm-bindgen* "${WASM_BINDGEN_DIR:?}"/wasm2es6js "${WASM_BINDGEN_DIR:?}"/bin/
+RUN command -V wasm-bindgen && wasm-bindgen --version
+
+# Install wasm-pack
+ENV WASM_PACK_DIR=/opt/wasm-pack
+ENV PATH=${WASM_PACK_DIR}/bin:${PATH}
+RUN mkdir -p "${WASM_PACK_DIR:?}"
+RUN case "$(uname -m)" in x86_64) TARGET=x86_64-unknown-linux-musl ;; aarch64) TARGET=aarch64-unknown-linux-musl ;; esac \
+	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/rustwasm/wasm-pack/releases/latest') \
+	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasm-pack-v[0-9]+(\\.[0-9]+)*-" + $t + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg t "${TARGET:?}" "${PKG_URL_PARSER:?}") \
+	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --no-same-owner --strip-components=1 -C "${WASM_PACK_DIR:?}" \
+	&& mkdir "${WASM_PACK_DIR:?}"/bin/ && mv "${WASM_PACK_DIR:?}"/wasm-pack "${WASM_PACK_DIR:?}"/bin/
+RUN command -V wasm-pack && wasm-pack --version
+
+# Install cargo-wasix
+ENV CARGO_WASIX_DIR=/opt/cargo-wasix
+ENV PATH=${CARGO_WASIX_DIR}/bin:${PATH}
+RUN cargo install --root "${CARGO_WASIX_DIR:?}" cargo-wasix && rm -rf ~/.cargo/
+RUN command -V cargo-wasix && cargo wasix --version
 
 # Copy scripts
 COPY --chown=wasm:wasm ./scripts/bin/ /usr/local/bin/
