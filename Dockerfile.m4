@@ -348,9 +348,9 @@ m4_ifdef([[SKIP_BUILD_EM_TARGETS]],, [[
 # Precompile some targets to speed up further builds
 RUN printf '%s\n' 'int main(){return 0;}' > /tmp/noop.c \
 	&& parallel -j1 -k -v --lb --halt now,fail=1 \
-		emcc /tmp/noop.c -o '/tmp/noop.{#}.wasm' '{=uq=}' \
-			::: '-lembind' \
-			::: '' '-O3' \
+		emcc /tmp/noop.c -o '/tmp/noop.{#}.wasm' '{=uq=}' -lembind \
+			::: '-sMEMORY64=0' '-sMEMORY64=1' \
+			::: '-O0' '-Oz' \
 			::: '' '-pthread' \
 			::: '' '-fpic -sMAIN_MODULE=2' \
 			::: '' '-flto=full' '-flto=thin' \
