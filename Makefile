@@ -82,7 +82,6 @@ $(IMAGE_ARM64V8_DOCKERFILE): $(DOCKERFILE_TEMPLATE)
 		--define=CROSS_ARCH=arm64v8 \
 		--define=CROSS_QEMU=/usr/bin/qemu-aarch64-static \
 		--define=SKIP_BUILD_EM_TARGETS=1 \
-		--define=SKIP_BUILD_CODE_SAMPLES=1 \
 		'$(DOCKERFILE_TEMPLATE)' > '$@'
 	'$(DOCKER)' build $(IMAGE_BUILD_OPTS) \
 		--tag '$(IMAGE_NAME):$(IMAGE_VERSION)-arm64v8' \
