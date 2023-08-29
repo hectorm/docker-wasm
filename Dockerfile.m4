@@ -346,12 +346,13 @@ RUN mkdir -p "${XDG_CONFIG_HOME:?}" "${XDG_CACHE_HOME:?}" "${XDG_DATA_HOME:?}" "
 m4_ifdef([[SKIP_BUILD_EM_TARGETS]],, [[
 # Precompile some targets to speed up further builds
 RUN printf '%s\n' 'int main(){return 0;}' > /tmp/noop.c \
-	&& parallel --halt now,fail=1 --lb emcc /tmp/noop.c -o '/tmp/noop.{#}.wasm' '{=uq=}' \
-		::: '-lembind' \
-		::: '' '-O3' \
-		::: '' '-pthread' \
-		::: '' '-fpic -sMAIN_MODULE=2' \
-		::: '' '-flto=full' '-flto=thin' \
+	&& parallel -j1 -k -v --lb --halt now,fail=1 \
+		emcc /tmp/noop.c -o '/tmp/noop.{#}.wasm' '{=uq=}' \
+			::: '-lembind' \
+			::: '' '-O3' \
+			::: '' '-pthread' \
+			::: '' '-fpic -sMAIN_MODULE=2' \
+			::: '' '-flto=full' '-flto=thin' \
 	&& rm -rf /tmp/noop.* ~/.parallel/
 ]])
 
