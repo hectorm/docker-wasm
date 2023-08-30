@@ -118,15 +118,18 @@ ENV WASIX_SYSROOT=${WASIX_SYSROOT32}
 # Define Wasmtime environment
 ENV WASMTIME_HOME=${PREFIX}/wasmtime
 ENV PATH=${WASMTIME_HOME}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${WASMTIME_HOME}/lib:${LD_LIBRARY_PATH}
 
 # Define Wasmer environment
 ENV WASMER_DIR=${PREFIX}/wasmer
 ENV PATH=${WASMER_DIR}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${WASMER_DIR}/lib:${LD_LIBRARY_PATH}
 
 # Define WasmEdge environment
 ENV WASMEDGE_DIR=${PREFIX}/wasmedge
-ENV WASMEDGE_PLUGIN_PATH=${WASMEDGE_DIR}/lib
+ENV WASMEDGE_PLUGIN_PATH=${WASMEDGE_DIR}/lib64
 ENV PATH=${WASMEDGE_DIR}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${WASMEDGE_DIR}/lib64:${LD_LIBRARY_PATH}
 
 # Define wasm-tools environment
 ENV WASM_TOOLS_DIR=${PREFIX}/wasm-tools
@@ -192,7 +195,7 @@ FROM base AS build
 RUN mkdir -p "${PREFIX:?}" && chown -R wasm:wasm "${PREFIX:?}"
 
 # Drop root privileges
-USER wasm:root
+USER wasm:wasm
 
 # Install Rust
 RUN mkdir -p "${RUST_HOME:?}" \
@@ -208,7 +211,6 @@ RUN mkdir -p "${RUST_HOME:?}" \
 	&& ./rust-std-*-wasm32-wasi/install.sh               --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-wasi \
 	&& ./rust-std-*-wasm32-unknown-unknown/install.sh    --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-unknown \
 	&& ./rust-std-*-wasm32-unknown-emscripten/install.sh --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-emscripten \
-	&& printf '%s\n' "${RUST_HOME:?}"/lib | sudo tee /etc/ld.so.conf.d/rustlib.conf && sudo ldconfig \
 	&& curl -sSfL "https://static.rust-lang.org/rustup/dist/${ARCH:?}-unknown-linux-gnu/rustup-init" -o "${RUST_HOME:?}"/bin/rustup-init \
 	&& chmod 0755 "${RUST_HOME:?}"/bin/rustup-init \
 	&& rm -rf /tmp/rust/
@@ -306,8 +308,7 @@ RUN mkdir -p "${WASMTIME_HOME:?}" \
 	&& mkdir "${WASMTIME_HOME:?}"/bin/ && mv "${WASMTIME_HOME:?}"/wasmtime "${WASMTIME_HOME:?}"/bin/ \
 	&& LIB_URL_PARSER='.assets[] | select(.name | test("^wasmtime-v[0-9]+(\\.[0-9]+)*-" + $a + "-linux-c-api\\.tar\\.xz$")?) | .browser_download_url' \
 	&& LIB_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${LIB_URL_PARSER:?}") \
-	&& curl -sSfL "${LIB_URL:?}" | bsdtar -x --strip-components=1 -C "${WASMTIME_HOME:?}" \
-	&& printf '%s\n' "${WASMTIME_HOME:?}"/lib | sudo tee /etc/ld.so.conf.d/wasmtime.conf && sudo ldconfig
+	&& curl -sSfL "${LIB_URL:?}" | bsdtar -x --strip-components=1 -C "${WASMTIME_HOME:?}"
 RUN test -f "${WASMTIME_HOME:?}"/lib/libwasmtime.so
 RUN command -V wasmtime && wasmtime --version
 
@@ -317,8 +318,7 @@ RUN mkdir -p "${WASMER_DIR:?}" \
 	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/wasmerio/wasmer/releases/latest') \
 	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasmer-linux-" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
 	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
-	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x -C "${WASMER_DIR:?}" \
-	&& printf '%s\n' "${WASMER_DIR:?}"/lib | sudo tee /etc/ld.so.conf.d/wasmer.conf && sudo ldconfig
+	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x -C "${WASMER_DIR:?}"
 RUN test -f "${WASMER_DIR:?}"/lib/libwasmer.so
 RUN command -V wasmer && wasmer --version
 
@@ -329,12 +329,10 @@ RUN mkdir -p "${WASMEDGE_DIR:?}" \
 	&& PKG_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
 	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${WASMEDGE_DIR:?}" \
-	&& mv "${WASMEDGE_DIR:?}"/lib64/ "${WASMEDGE_DIR:?}"/lib/ \
 	&& PLUGIN_WASI_CRYPTO_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-plugin-wasi_crypto-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
 	&& PLUGIN_WASI_CRYPTO_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PLUGIN_WASI_CRYPTO_URL_PARSER:?}") \
-	&& curl -sSfL "${PLUGIN_WASI_CRYPTO_URL:?}" | bsdtar -x -C "${WASMEDGE_PLUGIN_PATH:?}" \
-	&& printf '%s\n' "${WASMEDGE_DIR:?}"/lib | sudo tee /etc/ld.so.conf.d/wasmedge.conf && sudo ldconfig
-RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedge.so
+	&& curl -sSfL "${PLUGIN_WASI_CRYPTO_URL:?}" | bsdtar -x -C "${WASMEDGE_PLUGIN_PATH:?}"
+RUN test -f "${WASMEDGE_DIR:?}"/lib64/libwasmedge.so
 RUN test -f "${WASMEDGE_PLUGIN_PATH:?}"/libwasmedgePluginWasiCrypto.so
 RUN command -V wasmedge && wasmedge --version
 
