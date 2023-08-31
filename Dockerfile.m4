@@ -81,6 +81,7 @@ ENV PATH=${PREFIX}/bin:${PATH}
 # Define Rust environment
 ENV RUST_HOME=${PREFIX}/rust
 ENV PATH=${RUST_HOME}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${RUST_HOME}/lib:${LD_LIBRARY_PATH}
 
 # Define Zig environment
 ENV ZIG_HOME=${PREFIX}/zig
