@@ -280,9 +280,9 @@ RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}" \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${WASI_SDK_PATH:?}" \
 		-s "#/lib/clang/[0-9]*/#/lib/clang/$(basename "$(clang --print-resource-dir)")/#" \
 		'./wasi-sdk-*/lib/clang/[0-9]*/lib/wasi/' \
-		'./wasi-sdk-*/share/'
-RUN [ -e "${WASI_SDK_PATH:?}"/share/cmake/Platform/ ] || mkdir "${WASI_SDK_PATH:?}"/share/cmake/Platform/
-RUN [ -e "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake ] || printf '%s\n' 'set(WASI 1)' > "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake
+		'./wasi-sdk-*/share/' \
+	&& install -Dm644 /dev/null "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake \
+	&& printf '%s\n' 'set(WASI 1)' > "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake
 RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk.cmake
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 RUN test -f "$(clang --print-resource-dir)"/lib/wasi/libclang_rt.builtins-wasm32.a
