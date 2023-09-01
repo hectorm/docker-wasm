@@ -42,6 +42,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		ninja-build \
 		parallel \
 		patch \
+		patchelf \
 		perl \
 		pkgconf \
 		python-dev-is-python3 \
@@ -128,9 +129,9 @@ ENV LD_LIBRARY_PATH=${WASMER_DIR}/lib:${LD_LIBRARY_PATH}
 
 # Define WasmEdge environment
 ENV WASMEDGE_DIR=${PREFIX}/wasmedge
-ENV WASMEDGE_PLUGIN_PATH=${WASMEDGE_DIR}/lib64
+ENV WASMEDGE_PLUGIN_PATH=${WASMEDGE_DIR}/lib
 ENV PATH=${WASMEDGE_DIR}/bin:${PATH}
-ENV LD_LIBRARY_PATH=${WASMEDGE_DIR}/lib64:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=${WASMEDGE_DIR}/lib:${LD_LIBRARY_PATH}
 
 # Define wasm-tools environment
 ENV WASM_TOOLS_DIR=${PREFIX}/wasm-tools
@@ -332,8 +333,10 @@ RUN mkdir -p "${WASMEDGE_DIR:?}" \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${WASMEDGE_DIR:?}" \
 	&& PLUGIN_WASI_CRYPTO_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-plugin-wasi_crypto-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
 	&& PLUGIN_WASI_CRYPTO_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PLUGIN_WASI_CRYPTO_URL_PARSER:?}") \
+	&& patchelf --set-rpath '$ORIGIN/../lib' "${WASMEDGE_DIR:?}"/bin/wasmedge \
+	&& mv "${WASMEDGE_DIR:?}"/lib64/ "${WASMEDGE_DIR:?}"/lib/ \
 	&& curl -sSfL "${PLUGIN_WASI_CRYPTO_URL:?}" | bsdtar -x -C "${WASMEDGE_PLUGIN_PATH:?}"
-RUN test -f "${WASMEDGE_DIR:?}"/lib64/libwasmedge.so
+RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedge.so
 RUN test -f "${WASMEDGE_PLUGIN_PATH:?}"/libwasmedgePluginWasiCrypto.so
 RUN command -V wasmedge && wasmedge --version
 
