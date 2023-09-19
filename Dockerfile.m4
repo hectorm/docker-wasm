@@ -43,6 +43,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		mime-support \
 		nano \
 		ninja-build \
+		openssh-client \
 		parallel \
 		patch \
 		patchelf \
