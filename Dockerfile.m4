@@ -13,6 +13,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 	&& apt-get install -y --no-install-recommends \
 		autoconf \
 		automake \
+		autopoint \
 		bash \
 		bison \
 		build-essential \
@@ -26,8 +27,10 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		gettext \
 		git \
 		gnupg \
+		intltool \
 		jq \
 		libarchive-tools \
+		libltdl-dev \
 		libssl-dev \
 		libtoml-tiny-perl \
 		libtool \
