@@ -7,6 +7,7 @@ set -eua
 : "${WASI_TARGET=wasm32-wasi}"
 : "${WASI_CC=${WASI_SDK_PATH?}/bin/clang ${WASI_SYSROOT:+--sysroot=${WASI_SYSROOT:?}} ${WASI_TARGET:+--target=${WASI_TARGET:?}}}"
 : "${WASI_CXX=${WASI_SDK_PATH?}/bin/clang++ ${WASI_SYSROOT:+--sysroot=${WASI_SYSROOT:?}} ${WASI_TARGET:+--target=${WASI_TARGET:?}}}"
+: "${WASI_ASM=${WASI_SDK_PATH?}/bin/clang}"
 : "${WASI_AR=${WASI_SDK_PATH?}/bin/llvm-ar}"
 : "${WASI_LD=${WASI_SDK_PATH?}/bin/wasm-ld}"
 : "${WASI_NM=${WASI_SDK_PATH?}/bin/llvm-nm}"
@@ -22,6 +23,7 @@ set -eua
 
 : "${CC=${WASI_CC?}}"
 : "${CXX=${WASI_CXX?}}"
+: "${ASM=${WASI_ASM?}}"
 : "${AR=${WASI_AR?}}"
 : "${LD=${WASI_LD?}}"
 : "${LDSHARED=${WASI_LD?}}"
