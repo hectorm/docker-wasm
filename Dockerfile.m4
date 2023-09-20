@@ -76,12 +76,16 @@ RUN printf '%s\n' "${LANG:?} UTF-8" > /etc/locale.gen \
 # Allow members of group root to execute any command
 RUN printf '%s\n' '%root ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopasswd
 
-# Initialize PATH
+# Initialize system variables
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV XDG_CONFIG_DIRS=/etc/xdg
+ENV XDG_DATA_DIRS=/usr/local/share:/usr/share
 
-# Define install prefix
+# Define prefix environment
 ARG PREFIX=/opt
 ENV PATH=${PREFIX}/bin:${PATH}
+ENV XDG_CONFIG_DIRS=${PREFIX}/etc/xdg:${XDG_CONFIG_DIRS}
+ENV XDG_DATA_DIRS=${PREFIX}/share:${XDG_DATA_DIRS}
 
 # Define Rust environment
 ENV RUST_HOME=${PREFIX}/rust
@@ -378,6 +382,9 @@ RUN command -V wasm-pack && wasm-pack --version
 # Install cargo-wasix
 RUN cargo install --root "${CARGO_WASIX_DIR:?}" cargo-wasix
 RUN command -V cargo-wasix && cargo wasix --version
+
+# Copy config
+COPY --chmod=644 ./config/meson/cross/ ${PREFIX}/share/meson/cross/
 
 # Copy scripts
 COPY --chmod=755 ./scripts/bin/ ${PREFIX}/bin/

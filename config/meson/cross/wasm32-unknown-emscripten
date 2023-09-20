@@ -1,0 +1,30 @@
+[constants]
+em_sdk_path = '/opt/emsdk'
+em_args = []
+em_link_args = ['-sEXPORT_ALL=1']
+
+[binaries]
+c = em_sdk_path + '/upstream/emscripten/emcc'
+cpp = em_sdk_path + '/upstream/emscripten/em++'
+asm = em_sdk_path + '/upstream/emscripten/emcc'
+ar = em_sdk_path + '/upstream/emscripten/emar'
+c_ld = em_sdk_path + '/upstream/emscripten/emcc'
+cpp_ld = em_sdk_path + '/upstream/emscripten/em++'
+nm = em_sdk_path + '/upstream/bin/llvm-nm'
+ranlib = em_sdk_path + '/upstream/emscripten/emranlib'
+strip = em_sdk_path + '/upstream/emscripten/emstrip'
+objcopy = em_sdk_path + '/upstream/bin/llvm-objcopy'
+objdump = em_sdk_path + '/upstream/bin/llvm-objdump'
+pkg-config = ['pkg-config', '--static']
+
+[built-in options]
+c_args = em_args
+c_link_args = em_link_args
+cpp_args = em_args
+cpp_link_args = em_link_args
+
+[host_machine]
+system = 'emscripten'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'
