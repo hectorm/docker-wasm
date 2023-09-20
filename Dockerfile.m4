@@ -287,7 +287,8 @@ RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}" \
 		'./wasi-sdk-*/lib/clang/[0-9]*/lib/wasi/' \
 		'./wasi-sdk-*/share/' \
 	&& install -Dm644 /dev/null "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake \
-	&& printf '%s\n' 'set(WASI 1)' > "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake
+	&& printf '%s\n' 'set(WASI 1)' > "${WASI_SDK_PATH:?}"/share/cmake/Platform/WASI.cmake \
+	&& ln -s "${WASI_SDK_PATH:?}" "${PREFIX:?}"/wasi-sdk
 RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk.cmake
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 RUN test -f "$(clang --print-resource-dir)"/lib/wasi/libclang_rt.builtins-wasm32.a
