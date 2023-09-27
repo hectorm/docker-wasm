@@ -114,6 +114,7 @@ ENV EMSDK=${PREFIX}/emsdk
 ENV WASM_OPT=${EMSDK}/upstream/bin/wasm-opt
 ENV PATH=${EMSDK}:${PATH}
 ENV PATH=${EMSDK}/upstream/emscripten:${PATH}
+ENV PATH=${EMSDK}/upstream/emscripten/node_modules/.bin:${PATH}
 ENV PATH=${EMSDK}/upstream/bin:${PATH}
 
 # Define WASI environment
