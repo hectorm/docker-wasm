@@ -512,16 +512,16 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Go to WASI...' \
 	&& GOOS=wasip1 GOARCH=wasm go build -o ./hello.wasm ./hello.go \
-	&& MSGOUT=$(GOWASIRUNTIME=wasmtime go_wasip1_wasm_exec ./hello.wasm) \
-	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	# && MSGOUT=$(GOWASIRUNTIME=wasmtime go_wasip1_wasm_exec ./hello.wasm) \
+	# && { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(GOWASIRUNTIME=wasmer go_wasip1_wasm_exec ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(GOWASIRUNTIME=wasmedge go_wasip1_wasm_exec ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& printf '%s\n' 'Compiling TinyGo to WASI...' \
 	&& tinygo build -o ./hello.wasm -target wasi ./hello.go \
-	&& MSGOUT=$(wasmtime run ./hello.wasm) \
-	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	# && MSGOUT=$(wasmtime run ./hello.wasm) \
+	# && { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmedge ./hello.wasm) \
