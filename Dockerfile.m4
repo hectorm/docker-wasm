@@ -41,6 +41,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		make \
 		meson \
 		mime-support \
+		mold \
 		nano \
 		ninja-build \
 		openssh-client \
