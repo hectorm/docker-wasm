@@ -10,5 +10,6 @@ Developer playground for [WebAssembly](https://webassembly.org) with the latest 
 [WASI SDK](https://wasi.dev),
 [WASIX libc](https://wasix.org),
 [Wasmtime](https://wasmtime.dev),
-[Wasmer](https://wasmer.io) and
-[WasmEdge](https://wasmedge.org).
+[Wasmer](https://wasmer.io),
+[WasmEdge](https://wasmedge.org) and
+[Wazero](https://wazero.io).
