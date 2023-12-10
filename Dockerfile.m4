@@ -325,7 +325,7 @@ RUN mkdir -p "${WASMTIME_HOME:?}" \
 	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasmtime-v[0-9]+(\\.[0-9]+)*-" + $a + "-linux\\.tar\\.xz$")?) | .browser_download_url' \
 	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${WASMTIME_HOME:?}" \
-	&& mkdir "${WASMTIME_HOME:?}"/bin/ && mv "${WASMTIME_HOME:?}"/wasmtime "${WASMTIME_HOME:?}"/bin/ \
+	&& mkdir "${WASMTIME_HOME:?}"/bin/ && mv "${WASMTIME_HOME:?}"/wasmtime "${WASMTIME_HOME:?}"/wasmtime-min "${WASMTIME_HOME:?}"/bin/ \
 	&& LIB_URL_PARSER='.assets[] | select(.name | test("^wasmtime-v[0-9]+(\\.[0-9]+)*-" + $a + "-linux-c-api\\.tar\\.xz$")?) | .browser_download_url' \
 	&& LIB_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${LIB_URL_PARSER:?}") \
 	&& curl -sSfL "${LIB_URL:?}" | bsdtar -x --strip-components=1 -C "${WASMTIME_HOME:?}"
