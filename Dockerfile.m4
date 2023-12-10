@@ -143,6 +143,10 @@ ENV WASMEDGE_PLUGIN_PATH=${WASMEDGE_DIR}/lib
 ENV PATH=${WASMEDGE_DIR}/bin:${PATH}
 ENV LD_LIBRARY_PATH=${WASMEDGE_DIR}/lib:${LD_LIBRARY_PATH}
 
+# Define Wazero environment
+ENV WAZERO_DIR=${PREFIX}/wazero
+ENV PATH=${WAZERO_DIR}/bin:${PATH}
+
 # Define wasm-tools environment
 ENV WASM_TOOLS_DIR=${PREFIX}/wasm-tools
 ENV PATH=${WASM_TOOLS_DIR}/bin:${PATH}
@@ -354,6 +358,16 @@ RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedge.so
 RUN test -f "${WASMEDGE_PLUGIN_PATH:?}"/libwasmedgePluginWasiCrypto.so
 RUN command -V wasmedge && wasmedge --version
 
+# Install Wazero
+RUN mkdir -p "${WAZERO_DIR:?}" \
+	&& case "$(uname -m)" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; esac \
+	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/tetratelabs/wazero/releases/latest') \
+	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wazero_[0-9]+(\\.[0-9]+)*_linux_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
+	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x -C "${WAZERO_DIR:?}" \
+	&& mkdir "${WAZERO_DIR:?}"/bin/ && mv "${WAZERO_DIR:?}"/wazero "${WAZERO_DIR:?}"/bin/
+RUN command -V wazero && wazero version
+
 # Install wasm-tools
 RUN mkdir -p "${WASM_TOOLS_DIR:?}" \
 	&& case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
@@ -432,6 +446,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmedge ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wazero run ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASIX
 	&& printf '%s\n' 'Compiling C to WASIX...' \
 	&& WASI_SYSROOT="${WASIX_SYSROOT:?}" wasicc ./hello.c -o ./hello.wasm \
@@ -464,6 +480,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmedge ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wazero run ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/
 
@@ -485,6 +503,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmedge ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wazero run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/
@@ -521,6 +541,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(GOWASIRUNTIME=wasmedge go_wasip1_wasm_exec ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(GOWASIRUNTIME=wazero go_wasip1_wasm_exec ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& printf '%s\n' 'Compiling TinyGo to WASI...' \
 	&& tinygo build -o ./hello.wasm -target wasi ./hello.go \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
@@ -528,6 +550,8 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmedge ./hello.wasm) \
+	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& MSGOUT=$(wazero run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/
