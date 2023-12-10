@@ -193,9 +193,12 @@ ENV EM_PORTS=${EM_CACHE}/ports
 ENV WASMER_CACHE_DIR=${XDG_CACHE_HOME}/wasmer
 
 # Create wasm user
-RUN useradd --uid 1000 --user-group --create-home --home-dir "${HOME:?}" --shell "$(command -v bash)" wasm \
+RUN useradd --uid 1000 --user-group --create-home --home-dir "${HOME:?}" --shell /bin/bash wasm \
 	&& mkdir -p "${XDG_CONFIG_HOME:?}" "${XDG_CACHE_HOME:?}" "${XDG_DATA_HOME:?}" "${XDG_STATE_HOME:?}" "${XDG_RUNTIME_DIR:?}" \
 	&& chown -R wasm:wasm "${HOME:?}"
+
+# Set Bash as the default shell
+SHELL ["/bin/bash", "-euc"]
 
 ##################################################
 ## "build" stage
