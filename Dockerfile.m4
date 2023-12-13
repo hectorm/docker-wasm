@@ -147,6 +147,10 @@ ENV LD_LIBRARY_PATH=${WASMEDGE_DIR}/lib:${LD_LIBRARY_PATH}
 ENV WAZERO_DIR=${PREFIX}/wazero
 ENV PATH=${WAZERO_DIR}/bin:${PATH}
 
+# Define WABT environment
+ENV WABT_DIR=${PREFIX}/wabt
+ENV PATH=${WABT_DIR}/bin:${PATH}
+
 # Define wasm-tools environment
 ENV WASM_TOOLS_DIR=${PREFIX}/wasm-tools
 ENV PATH=${WASM_TOOLS_DIR}/bin:${PATH}
@@ -367,6 +371,19 @@ RUN mkdir -p "${WAZERO_DIR:?}" \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x -C "${WAZERO_DIR:?}" \
 	&& mkdir "${WAZERO_DIR:?}"/bin/ && mv "${WAZERO_DIR:?}"/wazero "${WAZERO_DIR:?}"/bin/
 RUN command -V wazero && wazero version
+
+# Install WABT
+RUN mkdir -p "${WABT_DIR:?}" \
+	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wabt/releases/latest') \
+	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wabt-[0-9]+(\\.[0-9]+)*\\.tar\\.xz$")?) | .browser_download_url' \
+	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r "${PKG_URL_PARSER:?}") \
+	&& cd "$(mktemp -d)" && curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C ./ \
+	&& mkdir ./build/ && cd ./build/ \
+	&& cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${WABT_DIR:?}" ./../ \
+	&& ninja install \
+	&& cd / && rm -rf "${OLDPWD:?}"
+RUN command -V wat2wasm && wat2wasm --version
+RUN command -V wasm2wat && wasm2wat --version
 
 # Install wasm-tools
 RUN mkdir -p "${WASM_TOOLS_DIR:?}" \

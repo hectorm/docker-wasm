@@ -11,5 +11,6 @@ Developer playground for [WebAssembly](https://webassembly.org) with the latest 
 [WASIX libc](https://wasix.org),
 [Wasmtime](https://wasmtime.dev),
 [Wasmer](https://wasmer.io),
-[WasmEdge](https://wasmedge.org) and
-[Wazero](https://wazero.io).
+[WasmEdge](https://wasmedge.org),
+[Wazero](https://wazero.io) and
+[WABT](https://github.com/WebAssembly/wabt).
