@@ -287,6 +287,7 @@ RUN mkdir -p "${EMSDK:?}" \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${EMSDK:?}" \
 	&& emsdk install latest \
 	&& emsdk activate latest \
+	&& ln -sr "${EMSDK:?}"/upstream/bin/{lld,ld.lld} \
 	&& embuilder clear ALL \
 	&& rm -rf "${EMSDK:?}"/upstream/emscripten/cache/
 RUN command -V emcc && emcc --version
