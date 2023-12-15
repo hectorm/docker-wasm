@@ -67,6 +67,9 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		zstd \
 	&& rm -rf /var/lib/apt/lists/*
 
+# Set Bash as the default shell
+SHELL ["/bin/bash", "-euc"]
+
 # Setup locale and timezone
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 TZ=UTC
 RUN printf '%s\n' "${LANG:?} UTF-8" > /etc/locale.gen \
@@ -77,7 +80,7 @@ RUN printf '%s\n' "${LANG:?} UTF-8" > /etc/locale.gen \
 # Allow members of group root to execute any command
 RUN printf '%s\n' '%root ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/nopasswd
 
-# Initialize system variables
+# Define system environment
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV XDG_CONFIG_DIRS=/etc/xdg
 ENV XDG_DATA_DIRS=/usr/local/share:/usr/share
@@ -204,9 +207,6 @@ ENV WASMER_CACHE_DIR=${XDG_CACHE_HOME}/wasmer
 RUN useradd --uid 1000 --user-group --create-home --home-dir "${HOME:?}" --shell /bin/bash wasm \
 	&& mkdir -p "${XDG_CONFIG_HOME:?}" "${XDG_CACHE_HOME:?}" "${XDG_DATA_HOME:?}" "${XDG_STATE_HOME:?}" "${XDG_RUNTIME_DIR:?}" \
 	&& chown -R wasm:wasm "${HOME:?}"
-
-# Set Bash as the default shell
-SHELL ["/bin/bash", "-euc"]
 
 ##################################################
 ## "build" stage
