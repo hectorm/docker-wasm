@@ -19,6 +19,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		build-essential \
 		bzip2 \
 		ca-certificates \
+		ccache \
 		cmake \
 		curl \
 		default-jre-headless \
