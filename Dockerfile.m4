@@ -40,8 +40,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		lsb-release \
 		m4 \
 		make \
+		media-types \
 		meson \
-		mime-support \
 		mold \
 		nano \
 		ninja-build \
