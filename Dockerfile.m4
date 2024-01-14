@@ -55,6 +55,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		python-is-python3 \
 		python3 \
 		python3-dev \
+		python3-packaging \
 		python3-pip \
 		python3-venv \
 		ragel \
