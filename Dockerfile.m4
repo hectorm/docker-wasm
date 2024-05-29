@@ -449,7 +449,7 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& printf '%s\n' '#include <stdio.h>' 'int main(){puts("'"${MSGIN:?}"'");}' > ./hello.c \
 	# Compile to native
 	&& printf '%s\n' 'Compiling C to native...' \
-	&& clang ./hello.c -o ./hello \
+	&& gcc ./hello.c -o ./hello \
 	&& MSGOUT=$(./hello) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASM
