@@ -126,11 +126,6 @@ ENV PATH=${EMSDK}/upstream/bin:${PATH}
 ENV WASI_SDK_PATH=${EMSDK}/upstream
 ENV WASI_SYSROOT=${WASI_SDK_PATH}/share/wasi-sysroot
 
-# Define WASIX environment
-ENV WASIX_SYSROOT32=${EMSDK}/upstream/share/wasix-sysroot32
-ENV WASIX_SYSROOT64=${EMSDK}/upstream/share/wasix-sysroot64
-ENV WASIX_SYSROOT=${WASIX_SYSROOT32}
-
 # Define Wasmtime environment
 ENV WASMTIME_HOME=${PREFIX}/wasmtime
 ENV PATH=${WASMTIME_HOME}/bin:${PATH}
@@ -166,10 +161,6 @@ ENV PATH=${WASM_BINDGEN_DIR}/bin:${PATH}
 # Define wasm-pack environment
 ENV WASM_PACK_DIR=${PREFIX}/wasm-pack
 ENV PATH=${WASM_PACK_DIR}/bin:${PATH}
-
-# Define cargo-wasix environment
-ENV CARGO_WASIX_DIR=${PREFIX}/cargo-wasix
-ENV PATH=${CARGO_WASIX_DIR}/bin:${PATH}
 
 # Define wasm user environment
 ENV HOME=/home/wasm
@@ -313,18 +304,6 @@ RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk.cmake
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasi/libc.a
 RUN test -f "$(clang --print-resource-dir)"/lib/wasi/libclang_rt.builtins-wasm32.a
 
-# Install WASIX sysroot into Emscripten
-RUN mkdir -p "${WASIX_SYSROOT32:?}" "${WASIX_SYSROOT64:?}" \
-	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/wasix-org/rust/releases/latest') \
-	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasix-libc\\.tar\\.gz$")?) | .browser_download_url' \
-	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r "${PKG_URL_PARSER:?}") \
-	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${WASIX_SYSROOT:?}"/../ \
-		-s '#/wasix-libc/sysroot\(32\|64\)/#/wasix-sysroot\1/#' \
-		'./wasix-libc/sysroot*/'
-RUN test -f "${WASIX_SYSROOT32:?}"/lib/wasm32-wasi/libc.a
-RUN test -f "${WASIX_SYSROOT64:?}"/lib/wasm64-wasi/libc.a
-RUN test -f "${WASIX_SYSROOT:?}"/lib/wasm32-wasi/libc.a
-
 # Install Wasmtime
 RUN mkdir -p "${WASMTIME_HOME:?}" \
 	&& case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
@@ -418,10 +397,6 @@ RUN mkdir -p "${WASM_PACK_DIR:?}" \
 	&& mkdir "${WASM_PACK_DIR:?}"/bin/ && mv "${WASM_PACK_DIR:?}"/wasm-pack "${WASM_PACK_DIR:?}"/bin/
 RUN command -V wasm-pack && wasm-pack --version
 
-# Install cargo-wasix
-RUN cargo install --root "${CARGO_WASIX_DIR:?}" cargo-wasix
-RUN command -V cargo-wasix && cargo wasix --version
-
 # Copy config
 COPY --chmod=644 ./config/meson/cross/ ${PREFIX}/share/meson/cross/
 
@@ -467,11 +442,6 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& MSGOUT=$(wasmedge ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wazero run ./hello.wasm) \
-	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
-	# Compile to WASIX
-	&& printf '%s\n' 'Compiling C to WASIX...' \
-	&& WASI_SYSROOT="${WASIX_SYSROOT:?}" wasicc ./hello.c -o ./hello.wasm \
-	&& MSGOUT=$(wasmer run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/

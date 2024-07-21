@@ -8,7 +8,6 @@ Developer playground for [WebAssembly](https://webassembly.org) with the latest 
 [Node.js](https://nodejs.org),
 [Emscripten](https://emscripten.org),
 [WASI SDK](https://wasi.dev),
-[WASIX libc](https://wasix.org),
 [Wasmtime](https://wasmtime.dev),
 [Wasmer](https://wasmer.io),
 [WasmEdge](https://wasmedge.org),
