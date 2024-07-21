@@ -298,9 +298,10 @@ RUN "${WASM_OPT:?}" --version
 
 # Install WASI SDK into Emscripten
 RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}" \
+	&& case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=arm64 ;; esac \
 	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/WebAssembly/wasi-sdk/releases/latest') \
-	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasi-sdk-[0-9]+(\\.[0-9]+)*-linux\\.tar\\.gz$")?) | .browser_download_url' \
-	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r "${PKG_URL_PARSER:?}") \
+	&& PKG_URL_PARSER='.assets[] | select(.name | test("^wasi-sdk-[0-9]+(\\.[0-9]+)*-" + $a + "-linux\\.tar\\.gz$")?) | .browser_download_url' \
+	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
 	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${WASI_SDK_PATH:?}" \
 		-s "#/lib/clang/[0-9]*/#/lib/clang/$(basename "$(clang --print-resource-dir)")/#" \
 		'./wasi-sdk-*/bin/wasm*-ld' \
