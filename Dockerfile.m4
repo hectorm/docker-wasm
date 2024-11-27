@@ -219,11 +219,13 @@ RUN mkdir -p "${RUST_HOME:?}" \
 	&& curl -sSfL 'https://static.rust-lang.org/dist/channel-rust-nightly.toml' -o ./manifest.toml \
 	&& PKG_URL_PARSER='print(from_toml(do{local $/;<STDIN>})->{pkg}{$ARGV[0]}{target}{$ARGV[1]}{xz_url})' \
 	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust     "${ARCH:?}"-unknown-linux-gnu < ./manifest.toml)" | bsdtar -x \
-	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-wasi                   < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-wasip1                 < ./manifest.toml)" | bsdtar -x \
+	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-wasip2                 < ./manifest.toml)" | bsdtar -x \
 	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-unknown-unknown        < ./manifest.toml)" | bsdtar -x \
 	&& curl -sSfL "$(perl -MPOSIX -MTOML::Tiny -e"${PKG_URL_PARSER:?}" rust-std wasm32-unknown-emscripten     < ./manifest.toml)" | bsdtar -x \
 	&& ./rust-*-"${ARCH:?}"-unknown-linux-gnu/install.sh --prefix="${RUST_HOME:?}" --components=rustc,rust-std-"${ARCH:?}"-unknown-linux-gnu,cargo,rustfmt-preview,clippy-preview \
-	&& ./rust-std-*-wasm32-wasi/install.sh               --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-wasi \
+	&& ./rust-std-*-wasm32-wasip1/install.sh             --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-wasip1 \
+	&& ./rust-std-*-wasm32-wasip2/install.sh             --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-wasip2 \
 	&& ./rust-std-*-wasm32-unknown-unknown/install.sh    --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-unknown \
 	&& ./rust-std-*-wasm32-unknown-emscripten/install.sh --prefix="${RUST_HOME:?}" --components=rust-std-wasm32-unknown-emscripten \
 	&& curl -sSfL "https://static.rust-lang.org/rustup/dist/${ARCH:?}-unknown-linux-gnu/rustup-init" -o "${RUST_HOME:?}"/bin/rustup-init \
@@ -463,7 +465,7 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Rust to WASI...' \
-	&& rustc ./hello.rs --target=wasm32-wasi -o ./hello.wasm \
+	&& rustc ./hello.rs --target=wasm32-wasip1 -o ./hello.wasm \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \
