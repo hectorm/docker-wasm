@@ -4,6 +4,6 @@ set -eua
 
 : "${WASI_SDK_PATH=/opt/wasi-sdk}"
 : "${WASI_SYSROOT=${WASI_SDK_PATH?}/share/wasi-sysroot}"
-: "${WASI_TARGET=wasm32-wasi}"
+: "${WASI_TARGET=wasm32-wasip1}"
 
 exec "${WASI_SDK_PATH:?}"/bin/clang++ ${WASI_SYSROOT:+--sysroot="${WASI_SYSROOT:?}"} ${WASI_TARGET:+--target="${WASI_TARGET:?}"} "${@-}"

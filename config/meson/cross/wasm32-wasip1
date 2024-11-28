@@ -1,13 +1,13 @@
 [constants]
 wasi_sdk_path = '/opt/wasi-sdk'
 wasi_sysroot = wasi_sdk_path + '/share/wasi-sysroot'
-wasi_target = 'wasm32-wasi'
+wasi_target = 'wasm32-wasip1'
 wasi_args = ['--sysroot=' + wasi_sysroot, '--target=' + wasi_target]
-wasi_link_args = []
+wasi_link_args = wasi_args
 
 [binaries]
-c = wasi_sdk_path + '/bin/clang'
-cpp = wasi_sdk_path + '/bin/clang++'
+c = wasi_sdk_path + '/bin/' + wasi_target + '-clang'
+cpp = wasi_sdk_path + '/bin/' + wasi_target + '-clang++'
 asm = wasi_sdk_path + '/bin/clang'
 ar = wasi_sdk_path + '/bin/llvm-ar'
 c_ld = wasi_sdk_path + '/bin/wasm-ld'
@@ -17,7 +17,7 @@ ranlib = wasi_sdk_path + '/bin/llvm-ranlib'
 strip = wasi_sdk_path + '/bin/llvm-strip'
 objcopy = wasi_sdk_path + '/bin/llvm-objcopy'
 objdump = wasi_sdk_path + '/bin/llvm-objdump'
-pkgconfig = ['pkg-config', '--static']
+pkg-config = ['pkg-config', '--static']
 
 [built-in options]
 c_args = wasi_args
@@ -26,7 +26,7 @@ cpp_args = wasi_args
 cpp_link_args = wasi_link_args
 
 [host_machine]
-system = 'wasi'
+system = 'wasip1'
 cpu_family = 'wasm32'
 cpu = 'wasm32'
 endian = 'little'

@@ -303,8 +303,11 @@ RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}" \
 		'./wasi-sdk-*/share/' \
 	&& ln -s "${WASI_SDK_PATH:?}" "${PREFIX:?}"/wasi-sdk
 RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk.cmake
-RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasi/libc.a
-RUN test -f "$(clang --print-resource-dir)"/lib/wasi/libclang_rt.builtins-wasm32.a
+RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk-p2.cmake
+RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasip1/libc.a
+RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasip2/libc.a
+RUN test -f "$(clang --print-resource-dir)"/lib/wasip1/libclang_rt.builtins-wasm32.a
+RUN test -f "$(clang --print-resource-dir)"/lib/wasip2/libclang_rt.builtins-wasm32.a
 
 # Install Wasmtime
 RUN mkdir -p "${WASMTIME_HOME:?}" \
@@ -489,7 +492,7 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling Zig to WASI...' \
-	&& zig build-exe -target wasm32-wasi ./hello.zig \
+	&& zig build-exe -target wasm32-wasi.0.1.0 ./hello.zig \
 	&& MSGOUT=$(wasmtime run ./hello.wasm) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
 	&& MSGOUT=$(wasmer run ./hello.wasm) \

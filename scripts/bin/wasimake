@@ -4,7 +4,7 @@ set -eua
 
 : "${WASI_SDK_PATH=/opt/wasi-sdk}"
 : "${WASI_SYSROOT=${WASI_SDK_PATH?}/share/wasi-sysroot}"
-: "${WASI_TARGET=wasm32-wasi}"
+: "${WASI_TARGET=wasm32-wasip1}"
 : "${WASI_CC=${WASI_SDK_PATH?}/bin/clang ${WASI_SYSROOT:+--sysroot=${WASI_SYSROOT:?}} ${WASI_TARGET:+--target=${WASI_TARGET:?}}}"
 : "${WASI_CXX=${WASI_SDK_PATH?}/bin/clang++ ${WASI_SYSROOT:+--sysroot=${WASI_SYSROOT:?}} ${WASI_TARGET:+--target=${WASI_TARGET:?}}}"
 : "${WASI_ASM=${WASI_SDK_PATH?}/bin/clang}"
@@ -33,6 +33,13 @@ set -eua
 : "${OBJCOPY=${WASI_OBJCOPY?}}"
 : "${OBJDUMP=${WASI_OBJDUMP?}}"
 
-: "${CMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH?}/share/cmake/wasi-sdk.cmake}"
+case "${WASI_TARGET:?}" in
+	wasm32-wasip1)
+		: "${CMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH?}/share/cmake/wasi-sdk.cmake}"
+		;;
+	wasm32-wasip2)
+		: "${CMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH?}/share/cmake/wasi-sdk-p2.cmake}"
+		;;
+esac
 
 exec "${@:?You need to run ${0##*/} with another command}"
