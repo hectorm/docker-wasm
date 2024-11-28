@@ -427,27 +427,34 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, world!' \
 	&& printf '%s\n' '#include <stdio.h>' 'int main(){puts("'"${MSGIN:?}"'");}' > ./hello.c \
+	&& printf '%s\n' "project('hello', 'c')" "executable('hello', 'hello.c')" > ./meson.build \
 	# Compile to native
 	&& printf '%s\n' 'Compiling C to native...' \
-	&& gcc ./hello.c -o ./hello \
-	&& MSGOUT=$(./hello) \
+	&& meson setup ./build/ \
+	&& meson compile -C ./build/ \
+	&& MSGOUT=$(./build/hello) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& rm -rf ./build/ \
 	# Compile to WASM
 	&& printf '%s\n' 'Compiling C to WASM...' \
-	&& emcc ./hello.c -o ./hello.js \
-	&& MSGOUT=$(node ./hello.js) \
+	&& emconfigure meson setup --cross-file wasm32-unknown-emscripten ./build/ \
+	&& emmake meson compile -C ./build/ \
+	&& MSGOUT=$(node ./build/hello.js) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& rm -rf ./build/ \
 	# Compile to WASI
 	&& printf '%s\n' 'Compiling C to WASI...' \
-	&& wasicc ./hello.c -o ./hello.wasm \
-	&& MSGOUT=$(wasmtime run ./hello.wasm) \
+	&& meson setup --cross-file wasm32-wasip1 ./build/ \
+	&& meson compile -C ./build/ \
+	&& MSGOUT=$(wasmtime run ./build/hello) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
-	&& MSGOUT=$(wasmer run ./hello.wasm) \
+	&& MSGOUT=$(wasmer run ./build/hello) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
-	&& MSGOUT=$(wasmedge ./hello.wasm) \
+	&& MSGOUT=$(wasmedge ./build/hello) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
-	&& MSGOUT=$(wazero run ./hello.wasm) \
+	&& MSGOUT=$(wazero run ./build/hello) \
 	&& { [ "${MSGOUT-}" = "${MSGIN:?}" ] || exit 1; } \
+	&& rm -rf ./build/ \
 	# Cleanup
 	&& rm -rf "${HOME:?}"/test/
 
