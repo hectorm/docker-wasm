@@ -302,7 +302,7 @@ RUN mkdir -p "${WASI_SDK_PATH:?}" "${WASI_SYSROOT:?}" \
 		'./wasi-sdk-*/lib/clang/[0-9]*/lib/' \
 		'./wasi-sdk-*/share/' \
 	&& ln -s "${WASI_SDK_PATH:?}" "${PREFIX:?}"/wasi-sdk
-RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk.cmake
+RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk-p1.cmake
 RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk-p2.cmake
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasip1/libc.a
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasip2/libc.a
