@@ -104,7 +104,7 @@ ENV PATH=${ZIG_HOME}:${PATH}
 # Define Go environment
 ENV GOROOT=${PREFIX}/go
 ENV PATH=${GOROOT}/bin:${PATH}
-ENV PATH=${GOROOT}/misc/wasm:${PATH}
+ENV PATH=${GOROOT}/lib/wasm:${PATH}
 
 # Define TinyGo environment
 ENV TINYGOROOT=${PREFIX}/tinygo
