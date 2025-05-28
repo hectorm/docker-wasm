@@ -403,10 +403,12 @@ RUN mkdir -p "${WASM_PACK_DIR:?}" \
 RUN command -V wasm-pack && wasm-pack --version
 
 # Copy config
-COPY --chmod=644 ./config/meson/cross/ ${PREFIX}/share/meson/cross/
+RUN mkdir -p "${PREFIX:?}"/share/meson/cross/ && chown -R wasm:wasm "${PREFIX:?}"/share/meson/
+COPY --chown=wasm:wasm --chmod=644 ./config/meson/cross/* ${PREFIX}/share/meson/cross/
 
 # Copy scripts
-COPY --chmod=755 ./scripts/bin/ ${PREFIX}/bin/
+RUN mkdir -p "${PREFIX:?}"/bin/ && chown -R wasm:wasm "${PREFIX:?}"/bin/
+COPY --chown=wasm:wasm --chmod=755 ./scripts/bin/* ${PREFIX}/bin/
 
 m4_ifdef([[SKIP_BUILD_EM_TARGETS]],, [[
 # Precompile some targets to speed up further builds
