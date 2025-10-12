@@ -495,7 +495,7 @@ RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 RUN mkdir "${HOME:?}"/test/ && cd "${HOME:?}"/test/ \
 	# Create program
 	&& MSGIN='Hello, world!' \
-	&& printf '%s\n' 'pub fn main() !void{try@import("std").io.getStdOut().writer().print("'"${MSGIN:?}"'\n",.{});}' > ./hello.zig \
+	&& printf '%s\n' 'pub fn main() !void{try@import("std").fs.File.stdout().writeAll("'"${MSGIN:?}"'\n");}' > ./hello.zig \
 	# Compile to native
 	&& printf '%s\n' 'Compiling Zig to native...' \
 	&& zig build-exe ./hello.zig \
