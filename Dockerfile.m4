@@ -337,17 +337,19 @@ RUN command -V wasmer && wasmer --version
 RUN mkdir -p "${WASMEDGE_DIR:?}" \
 	&& case "$(uname -m)" in x86_64) ARCH=x86_64 ;; aarch64) ARCH=aarch64 ;; esac \
 	&& RELEASE_JSON=$(curl -sSfL 'https://api.github.com/repos/WasmEdge/WasmEdge/releases/latest') \
-	&& PKG_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& PKG_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-[0-9]+(\\.[0-9]+)*-manylinux_2_28_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
 	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PKG_URL_PARSER:?}") \
-	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C "${WASMEDGE_DIR:?}" \
-	&& PLUGIN_WASI_CRYPTO_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-plugin-wasi_crypto-[0-9]+(\\.[0-9]+)*-manylinux2014_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
+	&& curl -sSfL "${PKG_URL:?}" | bsdtar -x -C "${WASMEDGE_DIR:?}" \
+	&& PLUGIN_WASI_CRYPTO_URL_PARSER='.assets[] | select(.name | test("^WasmEdge-plugin-wasi_crypto-[0-9]+(\\.[0-9]+)*-manylinux_2_28_" + $a + "\\.tar\\.gz$")?) | .browser_download_url' \
 	&& PLUGIN_WASI_CRYPTO_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r --arg a "${ARCH:?}" "${PLUGIN_WASI_CRYPTO_URL_PARSER:?}") \
 	&& patchelf --set-rpath '$ORIGIN/../lib' "${WASMEDGE_DIR:?}"/bin/wasmedge \
+	&& patchelf --set-rpath '$ORIGIN/../lib' "${WASMEDGE_DIR:?}"/bin/wasmedgec \
 	&& mv "${WASMEDGE_DIR:?}"/lib64/ "${WASMEDGE_DIR:?}"/lib/ \
 	&& curl -sSfL "${PLUGIN_WASI_CRYPTO_URL:?}" | bsdtar -x -C "${WASMEDGE_PLUGIN_PATH:?}"
 RUN test -f "${WASMEDGE_DIR:?}"/lib/libwasmedge.so
 RUN test -f "${WASMEDGE_PLUGIN_PATH:?}"/libwasmedgePluginWasiCrypto.so
 RUN command -V wasmedge && wasmedge --version
+RUN command -V wasmedgec && wasmedgec --version
 
 # Install Wazero
 RUN mkdir -p "${WAZERO_DIR:?}" \
