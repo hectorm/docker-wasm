@@ -306,8 +306,8 @@ RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk-p1.cmake
 RUN test -f "${WASI_SDK_PATH:?}"/share/cmake/wasi-sdk-p2.cmake
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasip1/libc.a
 RUN test -f "${WASI_SYSROOT:?}"/lib/wasm32-wasip2/libc.a
-RUN test -f "$(clang --print-resource-dir)"/lib/wasip1/libclang_rt.builtins-wasm32.a
-RUN test -f "$(clang --print-resource-dir)"/lib/wasip2/libclang_rt.builtins-wasm32.a
+RUN test -f "$(clang --print-resource-dir)"/lib/wasm32-unknown-wasip1/libclang_rt.builtins.a
+RUN test -f "$(clang --print-resource-dir)"/lib/wasm32-unknown-wasip2/libclang_rt.builtins.a
 
 # Install Wasmtime
 RUN mkdir -p "${WASMTIME_HOME:?}" \
