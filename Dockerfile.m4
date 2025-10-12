@@ -368,7 +368,7 @@ RUN mkdir -p "${WABT_DIR:?}" \
 	&& PKG_URL=$(printf '%s' "${RELEASE_JSON:?}" | jq -r "${PKG_URL_PARSER:?}") \
 	&& cd "$(mktemp -d)" && curl -sSfL "${PKG_URL:?}" | bsdtar -x --strip-components=1 -C ./ \
 	&& mkdir ./build/ && cd ./build/ \
-	&& cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${WABT_DIR:?}" ./../ \
+	&& cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${WABT_DIR:?}" -DBUILD_TESTS=OFF ./../ \
 	&& ninja install \
 	&& cd / && rm -rf "${OLDPWD:?}"
 RUN command -V wat2wasm && wat2wasm --version
